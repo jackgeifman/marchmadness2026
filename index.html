@@ -1,0 +1,3064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>March Madness 2026 — AI Bracket Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080808;
+  --surface: #101010;
+  --surface2: #161616;
+  --surface3: #1c1c1c;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #ede9e3;
+  --muted: #777;
+  --muted2: #555;
+  --accent: #e8a020;
+  --accent2: #f0c060;
+  --green: #2dbc72;
+  --green-dim: rgba(45,188,114,0.12);
+  --red: #e05050;
+  --red-dim: rgba(224,80,80,0.1);
+  --blue: #4a9eff;
+  --blue-dim: rgba(74,158,255,0.1);
+  --east: #c94040;
+  --west: #4a7fc4;
+  --midwest: #3aac6a;
+  --south: #c47a20;
+  --r1:#e8a020; --r2:#d4891a; --r3:#bf7214; --r4:#aa5c0f; --r5:#954509; --r6:#802e04;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
+
+/* ── HEADER ── */
+header{position:relative;padding:40px 40px 28px;border-bottom:1px solid var(--border2);z-index:1;overflow:hidden}
+header::after{content:'';position:absolute;top:-80px;right:-60px;width:600px;height:600px;background:radial-gradient(circle,rgba(232,160,32,0.05) 0%,transparent 65%);pointer-events:none}
+.eyebrow{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,7vw,80px);line-height:.9;letter-spacing:.02em;margin-bottom:14px}
+h1 span{color:var(--accent)}
+.header-sub{font-size:13px;color:var(--muted);max-width:520px;line-height:1.65}
+.header-pills{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;align-items:center}
+.pill{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);border:1px solid var(--border2);padding:3px 10px;border-radius:100px}
+.pill b{color:var(--text);font-weight:500}
+.pill.warn{border-color:rgba(232,160,32,0.3);color:var(--accent)}
+
+/* ── LAYOUT ── */
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 160px);position:relative;z-index:1}
+
+/* ── SIDEBAR ── */
+aside{border-right:1px solid var(--border);padding:20px 0;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+aside::-webkit-scrollbar{width:0}
+.nav-group{padding:0 14px;margin-bottom:20px}
+.nav-group-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);letter-spacing:.12em;text-transform:uppercase;padding:0 8px;margin-bottom:5px}
+.nb{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;text-align:left;transition:all .15s;margin-bottom:1px}
+.nb:hover{background:var(--surface2);color:var(--text)}
+.nb.active{background:var(--surface3);color:var(--text)}
+.nd{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sep{height:1px;background:var(--border);margin:10px 14px}
+.sidebar-bottom{margin-top:auto;padding:14px}
+.run-btn{width:100%;padding:10px 14px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s;text-align:left;display:flex;align-items:center;gap:8px}
+.run-btn:hover{opacity:.88}
+.run-btn:disabled{opacity:.35;cursor:not-allowed}
+.pbar{height:2px;background:var(--border2);border-radius:1px;overflow:hidden;margin-top:8px}
+.pfill{height:100%;background:var(--accent);border-radius:1px;transition:width .4s ease}
+.plabel{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:5px}
+
+/* ── MAIN ── */
+main{padding:28px 36px;overflow-y:auto}
+.panel{display:none}.panel.active{display:block}
+.ph{margin-bottom:24px}
+.ptitle{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;margin-bottom:3px}
+.pdesc{font-size:13px;color:var(--muted);line-height:1.6;max-width:600px}
+
+/* ── ROUND TABS ── */
+.round-tabs{display:flex;gap:3px;margin-bottom:24px;flex-wrap:wrap}
+.rt{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.rt:hover{border-color:var(--border2);color:var(--text)}
+.rt.active{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+.rt.done{border-color:rgba(45,188,114,0.3);color:var(--green)}
+
+/* ── MATCHUP CARD ── */
+.region-block{margin-bottom:32px}
+.region-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.region-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.04em}
+.region-loc{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.mrow{display:grid;grid-template-columns:1fr auto 1fr 140px;align-items:center;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;overflow:hidden;background:var(--surface);transition:border-color .2s}
+.mrow:hover{border-color:var(--border2)}
+.mrow.analyzed{border-color:rgba(232,160,32,0.18)}
+.tcell{padding:11px 14px;display:flex;align-items:center;gap:9px;transition:background .15s}
+.tcell.winner{background:var(--green-dim)}
+.tcell.loser{opacity:.33}
+.sbadge{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 5px;min-width:26px;text-align:center;flex-shrink:0}
+.tname{font-size:13px;font-weight:500}
+.tprob{font-family:'DM Mono',monospace;font-size:10px;margin-left:auto;flex-shrink:0}
+.vscell{padding:0 8px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);border-left:1px solid var(--border);border-right:1px solid var(--border);align-self:stretch;display:flex;align-items:center}
+.acell{padding:9px 12px;border-left:1px solid var(--border);display:flex;align-items:center;gap:6px;background:var(--surface2);flex-wrap:wrap}
+.abtn{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);background:transparent;border:1px solid rgba(232,160,32,0.25);border-radius:5px;padding:4px 9px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.abtn:hover{background:rgba(232,160,32,0.08)}
+.abtn.loading{opacity:.4;pointer-events:none}
+.abtn.done{border-color:rgba(45,188,114,0.3);color:var(--green)}
+.wchip{font-family:'DM Mono',monospace;font-size:10px;padding:2px 6px;border-radius:100px;white-space:nowrap}
+.ch-strong{background:rgba(45,188,114,0.15);color:var(--green)}
+.ch-mod{background:rgba(232,160,32,0.12);color:var(--accent2)}
+.ch-lean{background:rgba(255,255,255,0.06);color:var(--muted)}
+.ch-toss{background:var(--blue-dim);color:var(--blue)}
+.rdrawer{display:none;background:var(--surface2);border:1px solid var(--border2);border-top:none;border-radius:0 0 9px 9px;padding:14px 18px;margin-top:-6px;margin-bottom:6px;font-size:13px;line-height:1.7}
+.rdrawer.open{display:block}
+.rlabel{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.rsec{margin-bottom:10px}
+.rwinner-line{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.rwname{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);letter-spacing:.03em}
+.upflag{font-family:'DM Mono',monospace;font-size:10px;background:var(--red-dim);color:var(--red);border:1px solid rgba(224,80,80,0.2);border-radius:4px;padding:2px 7px}
+.edge-flag{font-family:'DM Mono',monospace;font-size:10px;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(74,158,255,0.2);border-radius:4px;padding:2px 7px}
+
+/* ── PROB BAR ── */
+.prob-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.prob-bar-wrap{flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.prob-bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.prob-label{font-family:'DM Mono',monospace;font-size:11px;min-width:38px}
+
+/* ── ODDS COMPARISON ── */
+.odds-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+.odds-card{background:var(--surface3);border:1px solid var(--border);border-radius:7px;padding:10px 12px}
+.odds-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:3px}
+.odds-val{font-size:16px;font-weight:500}
+.odds-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.edge-pos{color:var(--green)}
+.edge-neg{color:var(--red)}
+.edge-neu{color:var(--muted)}
+
+/* ── WEIGHTS PANEL ── */
+.weights-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.wcard{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:16px}
+.wcard-title{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.wrow{display:grid;grid-template-columns:1fr 70px 28px;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
+.wrow:last-child{border-bottom:none}
+.wname{font-size:12px}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:var(--border2);border-radius:1px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--accent);cursor:pointer}
+.wval{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);text-align:right}
+
+/* ── BOOST RULES ── */
+.boost-section{margin-top:20px}
+.boost-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.boost-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em}
+.add-boost-btn{padding:5px 12px;border:1px solid var(--border2);border-radius:6px;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s}
+.add-boost-btn:hover{color:var(--text);background:var(--surface2)}
+.boost-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center}
+.boost-input{height:32px;border:1px solid var(--border2);border-radius:6px;padding:0 8px;font-size:12px;background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;width:100%}
+.boost-input:focus{outline:none;border-color:var(--border2)}
+select.boost-input option{background:var(--surface2)}
+.del-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.del-btn:hover{background:var(--red-dim);color:var(--red);border-color:rgba(224,80,80,0.3)}
+.freetxt-section{margin-top:12px}
+.freetxt-area{width:100%;min-height:70px;border:1px solid var(--border2);border-radius:7px;padding:10px 12px;font-size:12px;background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;resize:vertical;line-height:1.6}
+.freetxt-area:focus{outline:none;border-color:var(--border2)}
+.freetxt-hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5}
+.settings-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.settings-label{font-size:12px;color:var(--muted);min-width:140px}
+.settings-input{height:32px;border:1px solid var(--border2);border-radius:6px;padding:0 10px;font-size:12px;background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;flex:1;min-width:200px}
+.settings-input:focus{outline:none;border-color:var(--border2)}
+.sbtn{padding:7px 16px;border:1px solid var(--border2);border-radius:7px;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s}
+.sbtn:hover{color:var(--text);background:var(--surface2)}
+.sbtn.primary{background:var(--accent);color:#000;border-color:transparent;font-weight:500}
+.sbtn.primary:hover{opacity:.88}
+
+/* ── BRACKET VIEW ── */
+.bracket-scroll{overflow-x:auto;padding-bottom:16px}
+.bracket-tree{display:flex;gap:0;min-width:1100px}
+.bracket-round{display:flex;flex-direction:column;min-width:160px;flex-shrink:0}
+.bracket-round-hd{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:0 10px 10px;text-align:center}
+.bracket-slots{display:flex;flex-direction:column;flex:1}
+.bslot{display:flex;flex-direction:column;justify-content:center;flex:1;padding:4px 6px}
+.bteam{padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);font-size:11px;display:flex;align-items:center;gap:5px;margin:1px 0;transition:all .2s;cursor:pointer}
+.bteam:hover{border-color:var(--border2)}
+.bteam.winner-team{border-color:rgba(232,160,32,0.3);background:rgba(232,160,32,0.06)}
+.bteam.champion{border-color:var(--accent);background:rgba(232,160,32,0.12);font-weight:500}
+.bseed{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);min-width:16px}
+.bname{font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bpct{font-family:'DM Mono',monospace;font-size:9px;margin-left:auto;flex-shrink:0}
+.bconnector{width:12px;border-right:1px solid var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-shrink:0;align-self:stretch}
+.championship-banner{text-align:center;padding:20px;background:rgba(232,160,32,0.06);border:1px solid rgba(232,160,32,0.2);border-radius:10px;margin:20px 0}
+.champ-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.champ-name{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);letter-spacing:.04em}
+.champ-prob{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-top:4px}
+
+/* ── SUMMARY ── */
+
+.region-picks-hd{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.04em;margin:16px 0 8px;color:var(--muted)}
+
+
+
+@keyframes shimmer{0%,100%{opacity:.4}50%{opacity:.9}}
+.pred-metric-row{display:grid;grid-template-columns:1fr 60px 60px 80px 80px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.pred-metric-row:last-child{border-bottom:none}
+.pred-metric-row.improved{background:rgba(45,188,114,0.04);border-radius:5px;padding-left:6px}
+.pred-metric-row.degraded{background:rgba(224,80,80,0.04);border-radius:5px;padding-left:6px}
+.pred-acc-bar{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-top:3px}
+.pred-acc-fill{height:100%;border-radius:2px}
+.pred-game-row{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;margin-bottom:5px;background:var(--surface);border:1px solid var(--border)}
+.pred-correct{border-left:3px solid var(--green)}
+.pred-wrong{border-left:3px solid var(--red)}
+.pred-pending{border-left:3px solid var(--border2)}
+.delta-pos{color:var(--green);font-weight:500}
+.delta-neg{color:var(--red);font-weight:500}
+.delta-neu{color:var(--muted)}
+.apply-weights-btn{padding:9px 20px;background:var(--green);color:#000;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.apply-weights-btn:hover{opacity:.88}
+.apply-weights-btn:disabled{opacity:.4;cursor:not-allowed}
+.upset-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s}
+.upset-card:hover{border-color:var(--border2)}
+.upset-card.likelihood-high{border-left:3px solid var(--red)}
+.upset-card.likelihood-medium{border-left:3px solid var(--accent)}
+.upset-card.likelihood-low{border-left:3px solid var(--muted2)}
+.upset-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.upset-teams{font-size:14px;font-weight:500}
+.upset-loser{color:var(--muted);font-weight:400}
+.likelihood-badge{font-family:'DM Mono',monospace;font-size:10px;padding:3px 9px;border-radius:100px;font-weight:500}
+.lb-high{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,80,80,0.25)}
+.lb-medium{background:rgba(232,160,32,0.1);color:var(--accent2);border:1px solid rgba(232,160,32,0.25)}
+.lb-low{background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--border2)}
+.upset-prob{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+.upset-summary{font-size:12px;color:var(--text);line-height:1.65;margin-top:6px}
+.upset-conditions{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.upset-cond-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.upset-cond-text{font-size:12px;color:var(--text);line-height:1.6}
+.upset-round-hd{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em;margin:20px 0 10px;color:var(--muted)}
+.upset-round-hd:first-child{margin-top:0}
+.upset-analyze-btn{padding:6px 14px;border:1px solid rgba(224,80,80,0.3);border-radius:6px;background:transparent;color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s}
+.upset-analyze-btn:hover{background:var(--red-dim)}
+.upset-analyze-btn:disabled{opacity:.4;pointer-events:none}
+.upset-run-btn{padding:9px 20px;background:var(--red);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s;margin-bottom:1rem}
+.upset-run-btn:hover{opacity:.88}
+.upset-run-btn:disabled{opacity:.4;cursor:not-allowed}
+.result-input-wrap{display:flex;align-items:center;gap:6px}
+.result-select{height:28px;border:1px solid var(--border2);border-radius:5px;padding:0 6px;font-size:11px;background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;cursor:pointer}
+.result-select:focus{outline:none}
+.loading-txt{animation:shimmer 1.3s ease-in-out infinite;color:var(--muted);font-style:italic;font-size:12px}
+
+@media(max-width:768px){
+  .shell{grid-template-columns:1fr}
+  aside{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+  main{padding:16px}
+  header{padding:24px 16px 20px}
+  .weights-layout{grid-template-columns:1fr}
+  .mrow{grid-template-columns:1fr auto 1fr}
+  .acell{display:none}
+}
+/* ── Saved Simulations ── */
+.sim-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s}
+.sim-card:hover{border-color:var(--border2)}
+.sim-card-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.sim-card-name{font-size:14px;font-weight:500;color:var(--text);flex:1}
+.sim-card-name input{background:transparent;border:none;border-bottom:1px solid var(--border2);color:var(--text);font-size:14px;font-weight:500;width:100%;outline:none;padding:2px 0}
+.sim-card-name input:focus{border-bottom-color:var(--accent)}
+.sim-card-meta{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+.sim-card-champion{font-size:12px;color:var(--accent);font-weight:500;margin-bottom:6px}
+.sim-card-weights{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.sim-weight-pill{font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:2px 7px;color:var(--muted)}
+.sim-card-actions{display:flex;gap:8px}
+.sim-btn{font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);transition:all .15s}
+.sim-btn:hover{background:var(--surface2);color:var(--text)}
+.sim-btn.primary{background:var(--accent);border-color:var(--accent);color:#000;font-weight:500}
+.sim-btn.danger{border-color:rgba(255,80,80,.3);color:var(--red)}
+.sim-btn.danger:hover{background:rgba(255,80,80,.1)}
+.save-sim-bar{display:flex;gap:8px;margin-bottom:20px;align-items:center}
+.save-sim-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none}
+.save-sim-input:focus{border-color:var(--accent)}
+/* ── Team Rankings ── */
+.rmetric-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s}
+.rmetric-btn:hover{border-color:var(--border2);color:var(--text)}
+.rmetric-btn.active{background:rgba(61,168,126,0.15);border-color:#3da87e;color:#3da87e;font-weight:500}
+.rtable-hd{background:var(--surface2);padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:1px solid var(--border)}
+.rtable-hd:hover{color:var(--text)}
+.rtable-hd.sorted-asc::after{content:' ↑'}
+.rtable-hd.sorted-desc::after{content:' ↓'}
+.rtable-row{border-bottom:1px solid var(--border);transition:background .1s}
+.rtable-row:hover{background:var(--surface)}
+.rtable-row td{padding:7px 10px;vertical-align:middle}
+.rtable-rank{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:32px}
+.rtable-seed{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);width:28px}
+.rtable-team{font-size:12px;font-weight:500}
+.rtable-region{font-size:10px;color:var(--muted)}
+.rtable-raw{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-align:right}
+.rtable-score{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;text-align:right;width:48px}
+.score-bar-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.score-bar{height:6px;border-radius:3px;min-width:2px;transition:width .3s}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow" id="header-date">Selection Sunday · March 15, 2026</div>
+  <h1>March <span>Madness</span> 2026</h1>
+  <p class="header-sub">Full tournament simulator — 6 rounds, AI-powered win probabilities, live betting line comparison, and custom metric boosts.</p>
+  <div class="header-pills">
+    <span class="pill"><b>68</b> teams</span>
+    <span class="pill"><b>6</b> rounds</span>
+    <span class="pill"><b>13</b> metrics</span>
+    <span class="pill">Duke <b>#1</b> overall</span>
+    <span class="pill warn" id="odds-status-pill">Odds API: not configured</span>
+  </div>
+</header>
+
+<div class="shell">
+<aside>
+  <div class="nav-group">
+    <div class="nav-group-label">Views</div>
+    <button class="nb active" onclick="switchTab('simulate')"><div class="nd" style="background:var(--accent)"></div>Simulate</button>
+    <button class="nb" onclick="switchTab('bracket')"><div class="nd" style="background:var(--blue)"></div>Bracket View</button>
+    <button class="nb" onclick="switchTab('rankings')"><div class="nd" style="background:#3da87e"></div>Team Rankings</button>
+    <button class="nb" onclick="switchTab('weights')"><div class="nd" style="background:#9b7fd4"></div>Metric Weights</button>
+    <button class="nb" onclick="switchTab('predictor')"><div class="nd" style="background:#c060e0"></div>Predictor Accuracy</button>
+    <button class="nb" onclick="switchTab('upsets')"><div class="nd" style="background:var(--red)"></div>Upset Watch</button>
+    <button class="nb" onclick="switchTab('saved')"><div class="nd" style="background:#e8a020"></div>Saved Sims</button>
+    <button class="nb" onclick="switchTab('settings')"><div class="nd" style="background:var(--muted2)"></div>Settings</button>
+  </div>
+  <div class="sep"></div>
+  <div class="nav-group">
+    <div class="nav-group-label">Rounds</div>
+    <button class="nb" onclick="switchTab('simulate');setRound(0)"><div class="nd" style="background:var(--r1)"></div>Round of 64</button>
+    <button class="nb" onclick="switchTab('simulate');setRound(1)"><div class="nd" style="background:var(--r2)"></div>Round of 32</button>
+    <button class="nb" onclick="switchTab('simulate');setRound(2)"><div class="nd" style="background:var(--r3)"></div>Sweet 16</button>
+    <button class="nb" onclick="switchTab('simulate');setRound(3)"><div class="nd" style="background:var(--r4)"></div>Elite Eight</button>
+    <button class="nb" onclick="switchTab('simulate');setRound(4)"><div class="nd" style="background:var(--r5)"></div>Final Four</button>
+    <button class="nb" onclick="switchTab('simulate');setRound(5)"><div class="nd" style="background:var(--r6)"></div>Championship</button>
+  </div>
+  <div class="sidebar-bottom">
+    <button class="run-btn" id="run-btn" onclick="runCurrentRound()">▶ Analyze Current Round</button>
+    <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+    <div class="plabel" id="plabel"></div>
+  </div>
+</aside>
+
+<main>
+
+<!-- SIMULATE -->
+<div class="panel active" id="panel-simulate">
+  <div class="ph">
+    <div class="ptitle" id="round-title">Round of 64</div>
+    <p class="pdesc">Pre-score all 68 teams first for consistent scores across every round, then analyze matchups.</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <button id="prescore-btn" class="sbtn primary" onclick="runPrescore()">Pre-score all 68 teams ↗</button>
+      <button class="sim-btn" style="font-size:12px;padding:5px 14px;margin-left:4px" onclick="switchTab('saved');setTimeout(()=>document.getElementById('save-sim-name')?.focus(),100)">💾 Save bracket</button>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted)">Simulations:</span>
+        <button onclick="setNumSims(1)"    id="simbtn-1"    style="padding:3px 10px;border-radius:14px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .15s;border:1px solid var(--border2);color:var(--muted);background:transparent">1</button>
+        <button onclick="setNumSims(3)"    id="simbtn-3"    style="padding:3px 10px;border-radius:14px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .15s;border:1px solid var(--border2);color:var(--muted);background:transparent">3</button>
+        <button onclick="setNumSims(5)"    id="simbtn-5"    style="padding:3px 10px;border-radius:14px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .15s;border:1px solid var(--border2);color:var(--muted);background:transparent">5</button>
+        <button onclick="setNumSims(7)"    id="simbtn-7"    style="padding:3px 10px;border-radius:14px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .15s;border:1px solid var(--accent);color:var(--accent);background:rgba(232,160,32,0.15)">7</button>
+        <button onclick="setNumSims(1001)" id="simbtn-1001" style="padding:3px 10px;border-radius:14px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .15s;border:1px solid var(--border2);color:var(--muted);background:transparent">∞ 1001</button>
+        <span id="sims-label" style="font-size:10px;color:var(--muted);margin-left:2px"></span>
+      </div>
+      <div id="prescore-status" style="font-size:12px;color:var(--muted)">Run this once before analyzing any matchups.</div>
+    </div>
+    <div class="pbar" id="prescore-pbar" style="display:none;margin-top:8px;max-width:400px"><div class="pfill" id="prescore-pfill" style="width:0%"></div></div>
+  </div>
+  <div class="round-tabs" id="round-tabs"></div>
+  <div id="sim-container"></div>
+</div>
+
+<!-- BRACKET VIEW -->
+<div class="panel" id="panel-bracket">
+  <div class="ph">
+    <div class="ptitle">Bracket View</div>
+    <p class="pdesc">Full tournament tree showing projected winners and cumulative path probabilities through each round.</p>
+  </div>
+  <div id="champ-banner"></div>
+  <div class="bracket-scroll"><div class="bracket-tree" id="bracket-tree"></div></div>
+</div>
+
+<!-- SUMMARY -->
+<!-- WEIGHTS -->
+<div class="panel" id="panel-rankings">
+  <div class="ph">
+    <div class="ptitle">Team Metric Rankings</div>
+    <p class="pdesc">All 68 teams ranked by metric scores. Run Pre-score first to populate data.</p>
+  </div>
+  <div id="rankings-not-ready" style="color:var(--muted);font-size:13px;padding:20px 0">
+    Pre-score has not been run yet. Go to <b>Simulate → Pre-score all 68 teams ↗</b> first.
+  </div>
+  <div id="rankings-content" style="display:none">
+    <!-- Metric selector tabs -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;align-items:center">
+      <span style="font-size:11px;color:var(--muted);margin-right:4px">View metric:</span>
+      <button class="rmetric-btn active" data-metric="total" onclick="setRankingMetric('total')">Team Total</button>
+      <button class="rmetric-btn" data-metric="net_rank" onclick="setRankingMetric('net_rank')">NET Rank</button>
+      <button class="rmetric-btn" data-metric="sov_rank" onclick="setRankingMetric('sov_rank')">SOV Rank</button>
+      <button class="rmetric-btn" data-metric="adj_o" onclick="setRankingMetric('adj_o')">Adj. OE</button>
+      <button class="rmetric-btn" data-metric="adj_d" onclick="setRankingMetric('adj_d')">Adj. DE</button>
+      <button class="rmetric-btn" data-metric="efg_pct" onclick="setRankingMetric('efg_pct')">eFG%</button>
+      <button class="rmetric-btn" data-metric="oreb" onclick="setRankingMetric('oreb')">Off. Reb</button>
+      <button class="rmetric-btn" data-metric="three_pct" onclick="setRankingMetric('three_pct')">3PT%</button>
+      <button class="rmetric-btn" data-metric="ft_pct" onclick="setRankingMetric('ft_pct')">FT%</button>
+      <button class="rmetric-btn" data-metric="to_rate" onclick="setRankingMetric('to_rate')">TO Rate</button>
+      <button class="rmetric-btn" data-metric="fta" onclick="setRankingMetric('fta')">FTA/G</button>
+      <button class="rmetric-btn" data-metric="stl" onclick="setRankingMetric('stl')">Steals</button>
+      <button class="rmetric-btn" data-metric="blk" onclick="setRankingMetric('blk')">Blocks</button>
+      <button class="rmetric-btn" data-metric="dreb" onclick="setRankingMetric('dreb')">Def. Reb</button>
+    </div>
+    <!-- Active metric label -->
+    <div id="rankings-metric-label" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
+    <!-- Table -->
+    <div style="overflow-x:auto">
+      <table id="rankings-table" style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr id="rankings-thead"></tr>
+        </thead>
+        <tbody id="rankings-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-weights">
+  <div class="ph">
+    <div class="ptitle">Metric Weights</div>
+    <p class="pdesc">Set base weights (0–15) for each metric. Then add threshold boosts for conditional bonuses, and optional free-text rules.</p>
+  </div>
+  <div class="weights-layout" id="weights-grid"></div>
+
+  <div class="boost-section">
+    <div class="boost-hd">
+      <div class="boost-title">Threshold Boosts</div>
+      <button class="add-boost-btn" onclick="addBoost()">+ Add Rule</button>
+    </div>
+    <div id="boost-list"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">When a team meets the condition, their score for that metric is multiplied by (1 + boost%). Example: 3pt% ≥ 35 with +15% boost means a qualifying team scores 15% higher on that metric.</div>
+  </div>
+
+  <div class="freetxt-section" style="margin-top:20px">
+    <div class="boost-title" style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em;margin-bottom:8px">Free-Text Rules <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.05em">(optional)</span></div>
+    <textarea class="freetxt-area" id="freetxt-rules" placeholder="Type any additional rules in plain English that the AI should apply when evaluating matchups.
+Examples:
+- Teams that play at a pace below 68 possessions/game are more reliable in tournament settings
+- Give extra credit to teams with a proven shot-blocker (2+ BPG)
+- Penalize teams that rely heavily on freshmen in clutch situations"></textarea>
+    <div class="freetxt-hint">These rules are passed directly to the AI as additional instructions. Use natural language.</div>
+  </div>
+
+  <div style="margin-top:16px;display:flex;gap:8px">
+    <button class="sbtn" onclick="resetWeights()">Reset to defaults</button>
+    <button class="sbtn primary" onclick="switchTab('simulate')">Apply & simulate →</button>
+  </div>
+</div>
+
+<!-- PREDICTOR ACCURACY -->
+<div class="panel" id="panel-predictor">
+  <div class="ph">
+    <div class="ptitle">Predictor Accuracy</div>
+    <p class="pdesc">Enter actual game results as they happen. The tool calculates which metrics most accurately predicted each outcome and suggests updated weights to improve future predictions.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
+
+    <!-- LEFT: game results entry -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.04em">Game Results</div>
+        <div style="font-size:11px;color:var(--muted)">Enter actual winners as games complete</div>
+      </div>
+      <div id="pred-games-list"></div>
+      <div id="pred-empty" style="font-size:13px;color:var(--muted);padding:20px 0">Analyze matchups first — games will appear here for result entry.</div>
+    </div>
+
+    <!-- RIGHT: metric accuracy + weight suggestions -->
+    <div>
+      <div class="wcard" style="margin-bottom:12px">
+        <div class="wcard-title">Model accuracy</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.02em" id="pred-overall-pct">—</div>
+          <div style="font-size:12px;color:var(--muted)" id="pred-overall-label">games entered</div>
+        </div>
+        <div class="pred-acc-bar"><div class="pred-acc-fill" id="pred-overall-bar" style="width:0%;background:var(--green)"></div></div>
+      </div>
+
+      <div id="pred-recommendations">
+        <div style="font-size:12px;color:var(--muted);padding:10px 0">Enter results to see weight recommendations.</div>
+      </div>
+
+      <button class="apply-weights-btn" id="apply-suggested-btn" onclick="applySuggestedWeights()" disabled style="margin-top:12px">
+        Apply suggested weights →
+      </button>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">Based on which metrics correctly predicted actual outcomes. Requires ≥3 games per metric to show a recommendation.</div>
+    </div>
+  </div>
+</div>
+
+<!-- UPSET WATCH -->
+<div class="panel" id="panel-upsets">
+  <div class="ph">
+    <div class="ptitle">Upset Watch</div>
+    <p class="pdesc">AI analysis of every potential upset across all analyzed rounds. For each game where the underdog has a realistic chance, the model explains exactly what needs to happen for the upset to occur.</p>
+  </div>
+  <button class="upset-run-btn" id="upset-run-btn" onclick="runUpsetAnalysis()">Analyze all upsets ↗</button>
+  <div id="upset-progress" style="display:none;margin-bottom:1rem">
+    <div class="pbar"><div class="pfill" id="upset-pfill" style="width:0%"></div></div>
+    <div class="plabel" id="upset-plabel"></div>
+  </div>
+  <div id="upset-content"><p style="font-size:13px;color:var(--muted)">Analyze matchups first — upset candidates will appear here automatically.</p></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="panel" id="panel-saved">
+  <div class="ph">
+    <div class="ptitle">Saved Simulations</div>
+    <p class="pdesc">Save the current bracket + metric weights to compare different scenarios. Up to 10 saved.</p>
+  </div>
+  <div class="save-sim-bar">
+    <input class="save-sim-input" id="save-sim-name" placeholder="Name this simulation (e.g. 'Balanced weights', 'Offense-heavy')…" maxlength="60">
+    <button class="sbtn primary" onclick="saveCurrentSim()">Save current bracket ↗</button>
+  </div>
+  <div id="saved-sims-list"><p style="font-size:13px;color:var(--muted)">No saved simulations yet. Run a bracket simulation then save it here.</p></div>
+</div>
+
+<div class="panel" id="panel-settings">
+  <div class="ph">
+    <div class="ptitle">Settings</div>
+    <p class="pdesc">Configure API keys and connection details.</p>
+  </div>
+  <div class="wcard" style="max-width:500px;margin-bottom:16px">
+    <div class="wcard-title">Cloudflare Worker</div>
+    <div class="settings-row">
+      <span class="settings-label">Worker URL</span>
+      <input class="settings-input" id="worker-url-setting" value="https://marchmadnessproxy.jackgeifman.workers.dev" placeholder="https://your-worker.workers.dev">
+    </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+      <button class="sbtn" onclick="testEspnConnection()" id="espn-test-btn">Test ESPN connection</button>
+      <span id="espn-test-result" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.65">
+      Deploy the new <b style="color:var(--text)">worker-v2.js</b> to Cloudflare to enable auto-fetching of road/neutral record, close game record, and bench depth from ESPN before each analysis.
+    </div>
+  </div>
+  <div class="wcard" style="max-width:500px;margin-bottom:16px">
+    <div class="wcard-title">The Odds API</div>
+    <div class="settings-row">
+      <span class="settings-label">API Key</span>
+      <input class="settings-input" id="odds-api-key" placeholder="Paste your key from the-odds-api.com">
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">
+      Free tier at <b style="color:var(--text)">the-odds-api.com</b> — 500 requests/month, no credit card needed.<br>
+      Odds will appear next to each matchup once the tournament begins Thursday.
+    </div>
+  </div>
+  <button class="sbtn primary" onclick="saveSettings()">Save settings</button>
+  <button class="sbtn" onclick="clearMetricCache();document.getElementById('prescore-btn').textContent='Pre-score all 68 teams ↗';document.getElementById('prescore-btn').style.background='';document.getElementById('prescore-btn').disabled=false;document.getElementById('prescore-status').textContent='Cache cleared — re-run pre-score before analyzing.';document.getElementById('prescore-status').style.color='var(--accent)';alert('Cache cleared. Return to Simulate tab and run Pre-score before analyzing matchups.')" style="margin-left:8px">Clear metric cache</button>
+  <div id="settings-msg" style="font-size:12px;color:var(--green);margin-top:8px;display:none">✓ Saved</div>
+</div>
+
+</main>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────
+let WORKER_URL = localStorage.getItem('worker_url') || 'https://marchmadnessproxy.jackgeifman.workers.dev';
+let ODDS_API_KEY = localStorage.getItem('odds_api_key') || '';
+
+// ─── ESPN STATS CACHE ─────────────────────────────────────────────
+const teamStatsCache = {};
+
+// ─── INJURY CACHE ─────────────────────────────────────────────────
+// Keyed by team name (lowercase). Populated by fetchInjuryReport().
+const injuryCache = {};
+
+// ─── HISTORICAL SEED WIN RATES (1985–2025, NCAA tournament) ───────
+// Source: NCAA official records. Key = "seed1_seed2" (higher seed first).
+// Value = historical win probability for the higher seed.
+const SEED_WIN_RATES = {
+  '1_16': 0.993, '2_15': 0.943, '3_14': 0.850, '4_13': 0.793,
+  '5_12': 0.643, '6_11': 0.629, '7_10': 0.607, '8_9':  0.493,
+  '1_8':  0.760, '1_9':  0.740, '2_7':  0.680, '2_10': 0.650,
+  '1_5':  0.880, '2_6':  0.800, '3_6':  0.700, '4_5':  0.580,
+  '1_4':  0.840, '1_3':  0.770, '2_3':  0.720, '1_2':  0.680,
+};
+
+function getSeedPrior(seed1, seed2) {
+  if (!seed1 || !seed2) return null;
+  const s1 = parseInt(seed1), s2 = parseInt(seed2);
+  if (isNaN(s1) || isNaN(s2)) return null;
+  const lo = Math.min(s1, s2), hi = Math.max(s1, s2);
+  const rate = SEED_WIN_RATES[lo + '_' + hi];
+  if (!rate) return null;
+  // Return win probability for seed1 (first team passed)
+  return s1 === lo ? rate : 1 - rate;
+}
+
+// ─── BRACKET DATA ─────────────────────────────────────────────────
+const REGIONS = ['East','West','Midwest','South'];
+const REGION_COLORS = {East:'#c94040',West:'#4a7fc4',Midwest:'#3aac6a',South:'#c47a20'};
+const ROUND_NAMES = ['Round of 64','Round of 32','Sweet 16','Elite Eight','Final Four','Championship'];
+
+const INITIAL_BRACKET = {
+  East:{color:'#c94040',location:'Washington, D.C.',teams:[
+    {seed:1,name:'Duke'},{seed:16,name:'Siena'},
+    {seed:8,name:'Ohio State'},{seed:9,name:'TCU'},
+    {seed:5,name:"St. John's"},{seed:12,name:'Northern Iowa'},
+    {seed:4,name:'Kansas'},{seed:13,name:'Cal Baptist'},
+    {seed:6,name:'Louisville'},{seed:11,name:'South Florida'},
+    {seed:3,name:'Michigan State'},{seed:14,name:'North Dakota State'},
+    {seed:7,name:'UCLA'},{seed:10,name:'UCF'},
+    {seed:2,name:'UConn'},{seed:15,name:'Furman'},
+  ]},
+  West:{color:'#4a7fc4',location:'San Jose, CA',teams:[
+    {seed:1,name:'Arizona'},{seed:16,name:'LIU'},
+    {seed:8,name:'Villanova'},{seed:9,name:'Utah State'},
+    {seed:5,name:'Wisconsin'},{seed:12,name:'High Point'},
+    {seed:4,name:'Arkansas'},{seed:13,name:'Hawaii'},
+    {seed:6,name:'BYU'},{seed:11,name:'Texas / NC State'},
+    {seed:3,name:'Gonzaga'},{seed:14,name:'Kennesaw State'},
+    {seed:7,name:'Miami FL'},{seed:10,name:'Missouri'},
+    {seed:2,name:'Purdue'},{seed:15,name:'Queens'},
+  ]},
+  Midwest:{color:'#3aac6a',location:'Chicago, IL',teams:[
+    {seed:1,name:'Michigan'},{seed:16,name:'UMBC / Howard'},
+    {seed:8,name:'Georgia'},{seed:9,name:'Saint Louis'},
+    {seed:5,name:'Texas Tech'},{seed:12,name:'Akron'},
+    {seed:4,name:'Alabama'},{seed:13,name:'Hofstra'},
+    {seed:6,name:'Tennessee'},{seed:11,name:'SMU / Miami OH'},
+    {seed:3,name:'Virginia'},{seed:14,name:'Wright State'},
+    {seed:7,name:'Kentucky'},{seed:10,name:'Santa Clara'},
+    {seed:2,name:'Iowa State'},{seed:15,name:'Tennessee State'},
+  ]},
+  South:{color:'#c47a20',location:'Houston, TX',teams:[
+    {seed:1,name:'Florida'},{seed:16,name:'Prairie View / Lehigh'},
+    {seed:8,name:'Clemson'},{seed:9,name:'Iowa'},
+    {seed:5,name:'Vanderbilt'},{seed:12,name:'McNeese'},
+    {seed:4,name:'Nebraska'},{seed:13,name:'Troy'},
+    {seed:6,name:'North Carolina'},{seed:11,name:'VCU'},
+    {seed:3,name:'Illinois'},{seed:14,name:'Penn'},
+    {seed:7,name:"Saint Mary's"},{seed:10,name:'Texas A&M'},
+    {seed:2,name:'Houston'},{seed:15,name:'Idaho'},
+  ]}
+};
+
+// ─── STATE ────────────────────────────────────────────────────────
+// rounds[r] = array of {t1, t2, region, result:{winner,prob1,prob2,pathProb1,pathProb2,...}}
+let rounds = [];
+let currentRound = 0;
+let picks = {}; // key: `r${round}_${region}_${idx}` => result object
+let oddsCache = {};
+
+// ─── METRICS ──────────────────────────────────────────────────────
+const METRICS = [
+  // ── Composite ratings (auto-fetched from WarrenNolan + Torvik) ──
+  {id:'net_rank',    label:'NET ranking',              group:'Composite Ratings', w:10, hb:false},
+  {id:'sov_rank',    label:'Strength of schedule rank', group:'Composite Ratings', w:8,  hb:false},
+  {id:'adj_o',       label:'Adj. offensive efficiency', group:'Composite Ratings', w:14,  hb:true},
+  {id:'adj_d',       label:'Adj. defensive efficiency', group:'Composite Ratings', w:14,  hb:false},
+  // ── Efficiency & Shooting ──
+  {id:'efg_pct',     label:'Effective FG% (eFG%)',     group:'Efficiency & Shooting', w:7,  hb:true},
+  {id:'oreb',        label:'Offensive rebound %',      group:'Efficiency & Shooting', w:5,  hb:true},
+  {id:'three_pct',   label:'3-point %',                group:'Efficiency & Shooting', w:5,  hb:true},
+  {id:'ft_pct',      label:'Free throw %',             group:'Efficiency & Shooting', w:6,  hb:true},
+  // ── Ball Security ──
+  {id:'to_rate',     label:'Turnover rate',            group:'Ball Security', w:8,  hb:false},
+  {id:'fta',         label:'FT attempts / game',       group:'Ball Security', w:4,  hb:true},
+  {id:'stl',         label:'Steals per game',           group:'Defensive Pressure', w:2, hb:true},
+  {id:'blk',         label:'Blocks per game',            group:'Defensive Pressure', w:2, hb:true},
+  {id:'dreb',        label:'Def. rebounds per game',     group:'Defensive Pressure', w:2, hb:true},
+];
+let weights = {};
+METRICS.forEach(m => weights[m.id] = m.w);
+
+let boostRules = [
+  // 3PT% >= 37%: Elite shooting — strongest upset predictor (+15%)
+  {metric:'three_pct', op:'>=', value:'37', boost:'15'},
+  // FT% >= 78%: Late-game execution under pressure (+10%)
+  {metric:'ft_pct',    op:'>=', value:'78', boost:'10'},
+  // Adj. OE >= 120: Elite offense, present in nearly all Final Four teams (+10%)
+  {metric:'adj_o',     op:'>=', value:'120', boost:'10'},
+  // Adj. DE <= 95: Championship-caliber defense, every champion top-18 nationally (+12%)
+  {metric:'adj_d',     op:'<=', value:'95',  boost:'12'},
+  // TO rate <= 12.5 turnovers/game: Elite ball security (+12%)
+  {metric:'to_rate',   op:'<=', value:'12.5', boost:'12'},
+];
+
+// ─── INIT ─────────────────────────────────────────────────────────
+function init() {
+  // Update header date to current date
+  const el = document.getElementById('header-date');
+  if (el) {
+    const now = new Date();
+    const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    el.textContent = now.toLocaleDateString('en-US', opts);
+  }
+  buildRound0();
+  buildWeightsUI();
+  buildBoostUI();
+  buildRoundTabs();
+  renderSimulator();
+  updateOddsStatusPill();
+  document.getElementById('worker-url-setting').value = WORKER_URL;
+  document.getElementById('odds-api-key').value = ODDS_API_KEY;
+}
+
+// Placeholder team object for an unresolved matchup slot
+function makePlaceholder(roundIdx, matchupIdx, slotLabel) {
+  return { name: slotLabel, seed: '?', region: '', isPlaceholder: true, _fromRound: roundIdx, _fromIdx: matchupIdx };
+}
+
+// Resolve a slot: if the prior matchup has a result, return the actual winner team obj.
+// Otherwise return a placeholder showing which matchup feeds this slot.
+function resolveSlot(priorRound, matchupIdx, region) {
+  if (!rounds[priorRound]) return makePlaceholder(priorRound, matchupIdx, `Winner of game ${matchupIdx+1}`);
+  const m = rounds[priorRound][matchupIdx];
+  if (!m) return makePlaceholder(priorRound, matchupIdx, `Winner of game ${matchupIdx+1}`);
+  if (m.result) {
+    const w = m.result.winner === m.t1.name ? m.t1 : m.t2;
+    return { ...w, pathProb: m.result.pathProb_winner, region: region || m.region };
+  }
+  const t1 = m.t1, t2 = m.t2;
+  const label = `#${t1.seed} ${t1.name} / #${t2.seed} ${t2.name}`;
+  return makePlaceholder(priorRound, matchupIdx, label);
+}
+
+function buildRound0() {
+  rounds = [];
+  // Round 0: all 32 first-round matchups (fully defined from bracket)
+  const r0 = [];
+  for (const [region, data] of Object.entries(INITIAL_BRACKET)) {
+    const teams = data.teams;
+    for (let i = 0; i < teams.length; i += 2) {
+      r0.push({t1: {...teams[i], region}, t2: {...teams[i+1], region}, region, result: null});
+    }
+  }
+  rounds[0] = r0;
+
+  // Pre-initialize rounds 1-5 with placeholder slots so any round is navigable.
+  // Slots get resolved dynamically when rendered.
+  rebuildAllFutureRounds();
+}
+
+// Rebuild rounds 1-5 using current results from round 0+ as resolved slots.
+// Called after any matchup completes to keep future rounds fresh.
+function rebuildAllFutureRounds() {
+  // Round 1: 16 matchups, pairs of R0 winners by bracket position
+  const r1 = [];
+  for (let i = 0; i < 32; i += 2) {
+    const m0a = rounds[0]?.[i];
+    const m0b = rounds[0]?.[i+1];
+    if (!m0a || !m0b) continue;
+    const region = m0a.region;
+    r1.push({
+      t1: resolveSlot(0, i, region),
+      t2: resolveSlot(0, i+1, region),
+      region,
+      result: rounds[1]?.[r1.length]?.result || null,
+      _slot1: {r:0, i}, _slot2: {r:0, idx:i+1}
+    });
+  }
+  rounds[1] = r1;
+
+  // Round 2: 8 matchups (Sweet 16)
+  const r2 = [];
+  for (let i = 0; i < 16; i += 2) {
+    const region = rounds[1]?.[i]?.region || '';
+    r2.push({
+      t1: resolveSlot(1, i, region),
+      t2: resolveSlot(1, i+1, region),
+      region,
+      result: rounds[2]?.[r2.length]?.result || null,
+    });
+  }
+  rounds[2] = r2;
+
+  // Round 3: 4 matchups (Elite Eight)
+  const r3 = [];
+  for (let i = 0; i < 8; i += 2) {
+    const region = rounds[2]?.[i]?.region || '';
+    r3.push({
+      t1: resolveSlot(2, i, region),
+      t2: resolveSlot(2, i+1, region),
+      region,
+      result: rounds[3]?.[r3.length]?.result || null,
+    });
+  }
+  rounds[3] = r3;
+
+  // Round 4: Final Four (2 matchups, cross-region pairing)
+  const ffPairs = [[0,1],[2,3]]; // Elite Eight index pairs for FF
+  const ffRegions = ['East/West', 'Midwest/South'];
+  const r4 = ffPairs.map(([a,b], pi) => ({
+    t1: resolveSlot(3, a, ffRegions[pi]),
+    t2: resolveSlot(3, b, ffRegions[pi]),
+    region: ffRegions[pi],
+    result: rounds[4]?.[pi]?.result || null,
+  }));
+  rounds[4] = r4;
+
+  // Round 5: Championship
+  rounds[5] = [{
+    t1: resolveSlot(4, 0, 'Championship'),
+    t2: resolveSlot(4, 1, 'Championship'),
+    region: 'Championship',
+    result: rounds[5]?.[0]?.result || null,
+  }];
+}
+
+// ─── ROUND MANAGEMENT ─────────────────────────────────────────────
+function getWinnersOfRound(r) {
+  return rounds[r].map(m => {
+    if (!m.result) return null;
+    const w = m.result.winner === m.t1.name ? m.t1 : m.t2;
+    return {...w, pathProb: m.result.pathProb_winner};
+  });
+}
+
+// buildNextRound kept as no-op for compatibility — rebuildAllFutureRounds handles this now
+function buildNextRound(r) { rebuildAllFutureRounds(); return true; }
+
+// ─── RENDER SIMULATOR ─────────────────────────────────────────────
+function renderSimulator() {
+  const container = document.getElementById('sim-container');
+  container.innerHTML = '';
+  const r = currentRound;
+  if (!rounds[r]) { rebuildAllFutureRounds(); }
+  if (!rounds[r]) { container.innerHTML = '<p style="color:var(--muted);font-size:13px">Round not yet available.</p>'; return; }
+
+  document.getElementById('round-title').textContent = ROUND_NAMES[r];
+
+  if (r < 4) {
+    // Group by region for rounds 0-3
+    const byRegion = {};
+    rounds[r].forEach((m, i) => {
+      const reg = m.region || 'Other';
+      if (!byRegion[reg]) byRegion[reg] = [];
+      byRegion[reg].push({m, i});
+    });
+    for (const [region, matchups] of Object.entries(byRegion)) {
+      const block = document.createElement('div');
+      block.className = 'region-block';
+      const color = INITIAL_BRACKET[region]?.color || '#888';
+      block.innerHTML = `<div class="region-hd"><div class="region-name" style="color:${color}">${region}</div><div class="region-loc">${INITIAL_BRACKET[region]?.location||''}</div></div>`;
+      matchups.forEach(({m, i}) => renderMatchup(block, m, i, r));
+      container.appendChild(block);
+    }
+  } else {
+    // Final Four & Championship — no region grouping
+    const block = document.createElement('div');
+    block.className = 'region-block';
+    block.innerHTML = `<div class="region-hd"><div class="region-name">${ROUND_NAMES[r]}</div></div>`;
+    rounds[r].forEach((m, i) => renderMatchup(block, m, i, r));
+    container.appendChild(block);
+  }
+}
+
+function renderMatchup(container, m, i, r) {
+  const mid = `r${r}_${i}`;
+  const res = m.result;
+  const row = document.createElement('div');
+  const t1prob = res ? res.prob1 : null;
+  const t2prob = res ? res.prob2 : null;
+  const t1path = res ? res.pathProb1 : (m.t1.pathProb ? Math.round(m.t1.pathProb) : null);
+  const t2path = res ? res.pathProb2 : (m.t2.pathProb ? Math.round(m.t2.pathProb) : null);
+
+  const t1ph = m.t1.isPlaceholder;
+  const t2ph = m.t2.isPlaceholder;
+  const bothResolved = !t1ph && !t2ph;
+  row.innerHTML = `
+    <div class="mrow ${res?'analyzed':''}" id="mr-${mid}">
+      <div class="tcell ${res&&res.winner===m.t1.name?'winner':res?'loser':''}" id="tc1-${mid}"
+           style="${t1ph?'opacity:0.45;':''}">
+        <span class="sbadge" style="${t1ph?'background:var(--border2);color:var(--muted)':''}">${m.t1.seed||'?'}</span>
+        <span class="tname" style="${t1ph?'color:var(--muted);font-style:italic':''}">
+          ${t1ph ? m.t1.name : m.t1.name}
+        </span>
+        ${t1prob!==null?`<span class="tprob" style="color:${probColor(t1prob)}">${t1prob}%</span>`:''}
+        ${t1path!==null&&r>0&&!t1ph?`<span class="tprob" style="color:var(--muted);font-size:9px">${t1path}% to here</span>`:''}
+      </div>
+      <div class="vscell">vs</div>
+      <div class="tcell ${res&&res.winner===m.t2.name?'winner':res?'loser':''}" id="tc2-${mid}"
+           style="${t2ph?'opacity:0.45;':''}">
+        <span class="sbadge" style="${t2ph?'background:var(--border2);color:var(--muted)':''}">${m.t2.seed||'?'}</span>
+        <span class="tname" style="${t2ph?'color:var(--muted);font-style:italic':''}">
+          ${t2ph ? m.t2.name : m.t2.name}
+        </span>
+        ${t2prob!==null?`<span class="tprob" style="color:${probColor(t2prob)}">${t2prob}%</span>`:''}
+        ${t2path!==null&&r>0&&!t2ph?`<span class="tprob" style="color:var(--muted);font-size:9px">${t2path}% to here</span>`:''}
+      </div>
+      <div class="acell">
+        <button class="abtn ${res?'done':''}" id="btn-${mid}"
+          onclick="analyzeMatchup(${r},${i})"
+          ${!bothResolved&&!res?'title="Both teams must be determined before analyzing" style="opacity:0.4"':''}
+          ${!bothResolved&&!res?'disabled':''}>
+          ${res?'Re-run ↗':'Analyze ↗'}
+        </button>
+        ${res?`<span class="wchip ${chipClass(res.prob1)}">${res.prob1}%</span>`:''}
+      </div>
+    </div>
+    <div class="rdrawer ${res?'open':''}" id="rd-${mid}">${res?renderResultHTML(res,mid):''}
+    </div>
+  `;
+  container.appendChild(row);
+}
+
+function renderResultHTML(res, mid) {
+  if (!res) return '';
+  // Extract r and idx from mid (format: "r{r}_{idx}") for the analysis button
+  const _midParts = mid ? mid.replace('r','').split('_') : ['0','0'];
+  const r   = parseInt(_midParts[0]) || 0;
+  const idx = parseInt(_midParts[1]) || 0;
+
+  // Metric scorecard — winner advantages + loser counter-metrics
+  let scorecardHTML = '';
+  if (res.scores1 && res.scores2) {
+    const t1isWinner = res.winner === res.t1name;
+    const winnerScores = t1isWinner ? res.scores1 : res.scores2;
+    const loserScores  = t1isWinner ? res.scores2 : res.scores1;
+    const winnerName   = res.winner;
+    const loserName    = t1isWinner ? res.t2name : res.t1name;
+
+    const allMetrics = METRICS
+      .filter(m => (weights[m.id]||0) > 0)
+      .map(m => ({
+        id: m.id,
+        label: m.label,
+        ws: parseFloat((winnerScores[m.id]||5).toFixed(1)),
+        ls: parseFloat((loserScores[m.id]||5).toFixed(1)),
+        diff: (winnerScores[m.id]||5) - (loserScores[m.id]||5),
+        w: weights[m.id]||0
+      }));
+
+    // Winner advantages: metrics where winner scores meaningfully higher
+    const winnerAdv = allMetrics
+      .filter(m => m.diff > 0.3)
+      .sort((a,b) => (b.diff*b.w) - (a.diff*a.w))
+      .slice(0, 5);
+
+    // Loser counter-metrics: metrics where the losing team actually scores higher
+    const loserAdv = allMetrics
+      .filter(m => m.diff < -0.3)
+      .sort((a,b) => (a.diff*a.w) - (b.diff*b.w))
+      .slice(0, 4);
+
+    const winnerRows = winnerAdv.map(row => `
+      <div style="display:grid;grid-template-columns:1fr 32px 32px;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--green)">${row.label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;text-align:center;color:var(--green);font-weight:500">${row.ws}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;text-align:center;color:var(--muted)">${row.ls}</div>
+      </div>`).join('');
+
+    const loserRows = loserAdv.length > 0 ? loserAdv.map(row => `
+      <div style="display:grid;grid-template-columns:1fr 32px 32px;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--accent2)">${row.label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;text-align:center;color:var(--muted)">${row.ws}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;text-align:center;color:var(--accent2);font-weight:500">${row.ls}</div>
+      </div>`).join('') : `<div style="font-size:11px;color:var(--muted);padding:6px 0">No meaningful counter-metrics — ${loserName} is outmatched across the board.</div>`;
+
+    const colHd = (txt, col) => `<div style="font-size:10px;color:${col};font-weight:500;text-align:center">${txt}</div>`;
+    const shortW = winnerName.split(' ')[0];
+    const shortL = loserName.split(' ')[0];
+
+    scorecardHTML = `
+    <div class="rsec" style="margin-top:12px">
+      <div class="rlabel" style="margin-bottom:8px">Metric breakdown (0–10 scores)</div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:500;color:var(--green);margin-bottom:5px;display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;background:var(--green);border-radius:50%;display:inline-block"></span>
+          ${winnerName} advantages
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 32px 32px;gap:6px;padding:2px 0 4px">
+          <div style="font-size:10px;color:var(--muted)">Metric</div>
+          ${colHd(shortW,'var(--green)')}
+          ${colHd(shortL,'var(--muted)')}
+        </div>
+        ${winnerRows || '<div style="font-size:11px;color:var(--muted);padding:4px 0">No dominant advantages — tight matchup across metrics.</div>'}
+      </div>
+
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--accent2);margin-bottom:5px;display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;background:var(--accent2);border-radius:50%;display:inline-block"></span>
+          ${loserName} counter-metrics (where they have the edge)
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 32px 32px;gap:6px;padding:2px 0 4px">
+          <div style="font-size:10px;color:var(--muted)">Metric</div>
+          ${colHd(shortW,'var(--muted)')}
+          ${colHd(shortL,'var(--accent2)')}
+        </div>
+        ${loserRows}
+      </div>
+
+      <div style="font-size:10px;color:var(--muted);margin-top:8px">Scores are cached after first analysis — clear cache in Settings to re-fetch.</div>
+    </div>`;
+  }
+
+  const oddsSec = res.odds ? `
+    <div class="rsec">
+      <div class="rlabel">Win Probability vs Market</div>
+      <div class="odds-grid">
+        <div class="odds-card"><div class="odds-lbl">Model</div><div class="odds-val" style="color:${probColor(res.prob1)}">${res.prob1}%</div><div class="odds-sub">${res.winner}</div></div>
+        <div class="odds-card"><div class="odds-lbl">Market Implied</div><div class="odds-val">${res.odds.implied}%</div><div class="odds-sub">${res.odds.line} ML · ${res.odds.source||'DraftKings'}</div></div>
+        <div class="odds-card"><div class="odds-lbl">Model Edge</div><div class="odds-val ${res.odds.edge>0?'edge-pos':res.odds.edge<0?'edge-neg':'edge-neu'}">${res.odds.edge>0?'+':''}${res.odds.edge}%</div><div class="odds-sub">${Math.abs(res.odds.edge)>8?'Significant':'Marginal'}</div></div>
+      </div>
+    </div>` : '';
+
+  return `
+    <div class="rwinner-line">
+      <div class="rwname">${res.winner} advances</div>
+      <span class="wchip ${chipClass(res.prob1)}">${res.prob1}% win prob</span>
+      ${res.seriesResult ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-left:6px">sim ${res.seriesResult}</span>` : ''}
+      ${res.upsetAlert?'<span class="upflag">⚡ Upset Alert</span>':''}
+      ${res.odds&&Math.abs(res.odds.edge)>8?`<span class="edge-flag">+${res.odds.edge}% edge</span>`:''}
+    </div>
+      <span class="prob-label" style="color:${probColor(res.prob1)}">${res.prob1}%</span>
+      <div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:${res.prob1}%;background:${probColor(res.prob1)}"></div></div>
+      <span class="prob-label" style="text-align:right;color:${probColor(res.prob2)}">${res.prob2}%</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace">
+      <span>${res.t1name}</span><span>${res.t2name}</span>
+    </div>
+    ${scorecardHTML}
+    ${oddsSec}
+    ${renderConcentrationSection(res)}
+    ${renderInjurySection(res)}
+    ${res.analysis ? `
+      ${res.keyEdge?'<div class="rsec" style="margin-top:10px"><div class="rlabel">Key Edge</div><div>'+res.keyEdge+'</div></div>':''}
+      <div class="rsec"><div class="rlabel">Analysis</div><div>${res.analysis}</div></div>
+      ${res.coachingEdge && res.coachingEdge.toLowerCase() !== 'even' ? '<div class="rsec"><div class="rlabel">Coaching Edge</div><div>'+res.coachingEdge+'</div></div>' : ''}
+      ${res.upsetReason?'<div class="rsec"><div class="rlabel">Upset Alert</div><div>'+res.upsetReason+'</div></div>':''}
+    ` : `<div id="analysis-${r}-${idx}" style="margin-top:12px">
+      <button class="sbtn" style="font-size:11px;padding:5px 14px;cursor:pointer"
+        onclick="fetchMatchupAnalysis(${r},${idx})">📝 Get Analysis</button>
+    </div>`}
+  `;
+}
+
+function renderConcentrationSection(res) {
+  const c1 = res.inj1 ? null : null; // placeholder — use espn from result
+  // Check if either team has concentration risk from result context
+  const hasConc = res.concRisk1 || res.concRisk2;
+  if (!hasConc) return '';
+  let html = '<div class="rsec" style="margin-top:10px"><div class="rlabel">Scoring concentration risk</div>';
+  if (res.concRisk1) {
+    html += `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--accent2);font-weight:500">${res.t1name}</span>: top 2 scorers account for ${res.concRisk1.share}% of points (${res.concRisk1.names.join(' + ')}) — <span style="color:var(--accent2)">-${res.concRisk1.penalty}% probability penalty applied</span></div>`;
+  }
+  if (res.concRisk2) {
+    html += `<div style="font-size:12px"><span style="color:var(--accent2);font-weight:500">${res.t2name}</span>: top 2 scorers account for ${res.concRisk2.share}% of points (${res.concRisk2.names.join(' + ')}) — <span style="color:var(--accent2)">-${res.concRisk2.penalty}% probability penalty applied</span></div>`;
+  }
+  html += '<div style="font-size:10px;color:var(--muted);margin-top:4px">Teams where top 2 scorers exceed 55% combined are more vulnerable to individual off-nights.</div></div>';
+  return html;
+}
+
+function renderInjurySection(res) {
+  const hasInj1 = res.inj1 && res.inj1.injuryReport && res.inj1.injuryReport.length > 0;
+  const hasInj2 = res.inj2 && res.inj2.injuryReport && res.inj2.injuryReport.length > 0;
+  if (!hasInj1 && !hasInj2) return '';
+
+  const renderTeam = (inj, teamName) => {
+    if (!inj || !inj.injuryReport) return '';
+    const injured = inj.injuryReport.filter(p => p.status !== 'healthy');
+    const healthy  = inj.injuryReport.filter(p => p.status === 'healthy');
+    if (injured.length === 0) {
+      return `<div style="font-size:11px;color:var(--green);margin-bottom:6px">
+        <span style="font-weight:500">${teamName}</span> — all significant players healthy
+      </div>`;
+    }
+    const statusColor = s => s==='out'?'var(--red)':s==='doubtful'?'var(--accent)':s==='questionable'?'var(--accent2)':'var(--green)';
+    const rows = injured.map(p => `
+      <div style="display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:0.5px solid var(--border);font-size:11px">
+        <span style="flex:1;font-weight:500">${p.name}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${p.mpg?p.mpg.toFixed(1)+' MPG':''}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:500;color:${statusColor(p.status)}">${p.status.toUpperCase()}</span>
+      </div>
+      ${p.detail?`<div style="font-size:10px;color:var(--muted);padding-bottom:3px">${p.detail}</div>`:''}`
+    ).join('');
+    const impactPct = Math.round((inj.injuryImpact||0)*100);
+    return `
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;font-weight:500;margin-bottom:4px">${teamName}
+          ${impactPct>0?`<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--red);margin-left:6px">-${impactPct}% impact</span>`:''}
+        </div>
+        ${rows}
+        ${healthy.length>0?`<div style="font-size:10px;color:var(--muted);margin-top:3px">${healthy.length} other significant player${healthy.length>1?'s':''} healthy</div>`:''}
+      </div>`;
+  };
+
+  return `
+    <div class="rsec" style="margin-top:10px">
+      <div class="rlabel" style="margin-bottom:8px">Injury report (significant players: >50% games, >20 MPG)</div>
+      ${renderTeam(res.inj1, res.t1name)}
+      ${renderTeam(res.inj2, res.t2name)}
+      <div style="font-size:10px;color:var(--muted);margin-top:4px">Status sourced via live web search. Thresholds: doubtful/out players affect win probability.</div>
+    </div>`;
+}
+
+function probColor(p) {
+  if (p >= 75) return 'var(--green)';
+  if (p >= 58) return 'var(--accent2)';
+  if (p >= 50) return 'var(--text)';
+  return 'var(--muted)';
+}
+
+function chipClass(prob) {
+  if (!prob) return 'ch-lean';
+  if (prob >= 75) return 'ch-strong';
+  if (prob >= 60) return 'ch-mod';
+  if (prob >= 52) return 'ch-lean';
+  return 'ch-toss';
+}
+
+
+// ─── ESPN AUTO-FETCH ──────────────────────────────────────────────
+
+async function espnGet(path) {
+  const res = await fetch(WORKER_URL + path);
+  if (!res.ok) throw new Error('ESPN fetch failed: ' + res.status);
+  return res.json();
+}
+
+async function getTeamId(teamName) {
+  const key = teamName.toLowerCase();
+  if (teamStatsCache[key] && teamStatsCache[key].espnId) return teamStatsCache[key].espnId;
+  const data = await espnGet('/espn/team?name=' + encodeURIComponent(teamName));
+  if (data.error) throw new Error('Team not found: ' + teamName);
+  if (!teamStatsCache[key]) teamStatsCache[key] = {};
+  teamStatsCache[key].espnId = data.id;
+  teamStatsCache[key].displayName = data.displayName;
+  return data.id;
+}
+
+async function fetchTeamStats(teamName) {
+  const key = teamName.toLowerCase();
+  if (teamStatsCache[key] && teamStatsCache[key].fetched) return teamStatsCache[key];
+  const teamId = await getTeamId(teamName);
+  const [schedData, rosterData] = await Promise.all([
+    espnGet('/espn/schedule?teamId=' + teamId + '&season=2026'),
+    espnGet('/espn/roster?teamId=' + teamId + '&season=2026'),
+  ]);
+  const events = schedData.events || [];
+  const completed = events.filter(e => e.completed && e.won !== null);
+  const awayNeutral = completed.filter(e => e.isAway || e.isNeutral);
+  const awayWins = awayNeutral.filter(e => e.won).length;
+  const awayLosses = awayNeutral.filter(e => !e.won).length;
+  // Use 50.0 as default when no away games — neutral assumption
+  // Teams with no away data shouldn't be penalized with null
+  const awayPct = awayNeutral.length > 0 ? (awayWins / awayNeutral.length * 100).toFixed(1) : '50.0';
+  const closeGames = completed.filter(e => e.margin !== null && e.margin <= 6);
+  const closeWins = closeGames.filter(e => e.won).length;
+  const closeLosses = closeGames.filter(e => !e.won).length;
+  // Use 50.0 as default when no close games — neutral assumption
+  const closePct = closeGames.length > 0 ? (closeWins / closeGames.length * 100).toFixed(1) : '50.0';
+
+  // Recent form: all completed regular-season games since Feb 1
+  const feb1 = new Date('2026-02-01T00:00:00Z');
+  const recentGames = completed.filter(e => e.date && new Date(e.date) >= feb1);
+  const recentWins   = recentGames.filter(e => e.won).length;
+  const recentLosses = recentGames.filter(e => !e.won).length;
+  const recentPct    = recentGames.length > 0 ? (recentWins / recentGames.length * 100).toFixed(1) : null;
+  const athletes = rosterData.athletes || [];
+  const getMin = a => {
+    const s = a.stats || {};
+    return parseFloat(s['MIN'] || s['MPG'] || s['min'] || s['avgMinutes'] || 0);
+  };
+  const sorted = [...athletes].sort((a,b) => getMin(b) - getMin(a));
+  const benchPlayers = sorted.slice(5).filter(a => getMin(a) > 15).length;
+  const starters = sorted.slice(0, 5);
+  const yearMap = {1:1, 2:2, 3:3, 4:4, 5:4};
+  const avgYear = starters.length > 0
+    ? (starters.reduce((s, a) => s + (yearMap[a.year] || 2), 0) / starters.length).toFixed(2)
+    : '2.5'; // default sophomore avg when no roster data
+
+  // Player concentration risk: top 2 scorers' combined share of team points
+  const getPts = a => {
+    const s = a.stats || {};
+    return parseFloat(s['PTS'] || s['PPG'] || s['avgPoints'] || s['points'] || 0);
+  };
+  const byPts = [...athletes].sort((a,b) => getPts(b) - getPts(a));
+  const top2Pts = (getPts(byPts[0]||{}) + getPts(byPts[1]||{}));
+  const teamPtsPerGame = byPts.reduce((sum,a) => sum + getPts(a), 0);
+  const top2Share = teamPtsPerGame > 0 ? (top2Pts / teamPtsPerGame * 100) : null;
+  const top2Names = byPts.slice(0,2).map(a => a.name || '').filter(Boolean);
+  // Compute eFG% from ESPN team shooting stats if available
+  // eFG% = (FGM + 0.5 * 3PM) / FGA — pace-neutral shooting efficiency
+  let efgPct = null, ftPct = null, threePct = null;
+  let orebPerGame = null, toRate = null, ftaPerGame = null, stlPerGame = null, blkPerGame = null, drebPerGame = null;
+  try {
+    const teamResp = await espnGet('/espn/team-stats?teamId=' + teamId + '&season=2026');
+    if (teamResp) {
+      // Use pre-computed values from Worker (handles all ESPN abbreviation variants)
+      if (teamResp.efgPct   != null) efgPct    = teamResp.efgPct;
+      if (teamResp.ftPct    != null) ftPct     = teamResp.ftPct;
+      if (teamResp.threePct != null) threePct  = teamResp.threePct;
+      if (teamResp.orebPerGame != null) orebPerGame = teamResp.orebPerGame;
+      if (teamResp.toRate   != null) toRate    = teamResp.toRate;
+      if (teamResp.ftaPerGame != null) ftaPerGame = teamResp.ftaPerGame;
+      if (teamResp.stlPerGame  != null) stlPerGame  = teamResp.stlPerGame;
+      if (teamResp.blkPerGame  != null) blkPerGame  = teamResp.blkPerGame;
+      if (teamResp.drebPerGame != null) drebPerGame = teamResp.drebPerGame;
+      // Fallback: compute eFG% from raw counts if pre-computed not available
+      if (efgPct == null && teamResp.fgm != null && teamResp.fga != null && teamResp.tpm != null && teamResp.fga > 0) {
+        efgPct = parseFloat(((teamResp.fgm + 0.5 * teamResp.tpm) / teamResp.fga * 100).toFixed(1));
+      }
+    }
+  } catch(e2) {}
+
+  const stats = {
+    fetched: true,
+    espnId: teamId,
+    awayRecord: awayWins + '-' + awayLosses,
+    awayGames: awayNeutral.length,
+    awayWinPct: awayPct,
+    closeRecord: closeWins + '-' + closeLosses,
+    closeGames: closeGames.length,
+    closeWinPct: closePct,
+    recentRecord: recentWins + '-' + recentLosses,
+    recentGames: recentGames.length,
+    recentWinPct: recentPct,
+    benchPlayersOver15mpg: benchPlayers,
+    avgStarterYear: avgYear,
+    efgPct, ftPct, threePct,
+    orebPerGame, toRate, ftaPerGame, stlPerGame, blkPerGame, drebPerGame,
+    top2ScoringShare: top2Share !== null ? parseFloat(top2Share.toFixed(1)) : null,
+    top2ScorerNames: top2Names,
+  };
+  teamStatsCache[key] = stats;
+  return stats;
+}
+
+async function fetchInjuryReport(teamName, teamId, totalGames) {
+  const key = teamName.toLowerCase();
+  if (injuryCache[key]) return injuryCache[key];
+  try {
+    const data = await espnGet(
+      '/espn/injuries?teamId=' + teamId +
+      '&teamName=' + encodeURIComponent(teamName) +
+      '&totalGames=' + (totalGames || 30)
+    );
+    injuryCache[key] = data;
+    return data;
+  } catch(e) {
+    const fallback = { injuryImpact: 0, summary: 'Injury data unavailable.', injuryReport: [] };
+    injuryCache[key] = fallback;
+    return fallback;
+  }
+}
+
+async function fetchAdvancedStats(teamName) {
+  const key = teamName.toLowerCase();
+  if (teamStatsCache[key] && teamStatsCache[key].advFetched) return teamStatsCache[key];
+  try {
+    const data = await espnGet('/advanced?name=' + encodeURIComponent(teamName));
+    if (!teamStatsCache[key]) teamStatsCache[key] = {};
+    Object.assign(teamStatsCache[key], {
+      advFetched: true,
+      netRank:  data.netRank  || null,
+      sovRank:  data.sovRank  || null,
+      adjEM:    data.adjEM    || null,
+      adjO:     data.adjO     || null,
+      adjD:     data.adjD     || null,
+    });
+  } catch(e) {
+    if (!teamStatsCache[key]) teamStatsCache[key] = {};
+    teamStatsCache[key].advFetched = true;
+  }
+  return teamStatsCache[key];
+}
+
+async function fetchMatchupStats(team1Name, team2Name) {
+  const results = await Promise.allSettled([
+    fetchTeamStats(team1Name),
+    fetchTeamStats(team2Name),
+  ]);
+  const fmt = (res, name) => {
+    if (res.status === 'rejected') return '  ' + name + ': stats unavailable (' + (res.reason && res.reason.message || 'error') + ')';
+    const s = res.value;
+    return '  ' + name + ': stats fetched';
+  };
+  return '\n\nAUTO-FETCHED STATS (use as ground truth):\n' + fmt(results[0], team1Name) + '\n' + fmt(results[1], team2Name);
+}
+
+// ─── ANALYZE ──────────────────────────────────────────────────────
+// Metric score cache: metricScoreCache[teamName][metricId] = 0-10 float
+// Populated ONCE per session via prescoreAllTeams(). Never per-matchup.
+const metricScoreCache = {};
+let prescoringDone = false;
+let numSims = 7; // number of simulations per matchup (odd number, winner = majority)
+let prescoringInProgress = false;
+
+function clearMetricCache(teamName) {
+  if (teamName) delete metricScoreCache[teamName.toLowerCase()];
+  else {
+    Object.keys(metricScoreCache).forEach(k => delete metricScoreCache[k]);
+    prescoringDone = false;
+  }
+}
+
+// ── Deterministic rank → 0-10 score ──────────────────────────────
+// Converts a team's rank among the 68-team field to a 0-10 score.
+// Rank 1 = 10.0, Rank 34 = 5.0, Rank 68 = 0.0. No AI involved.
+function rankToScore(rankAmong68) {
+  if (!rankAmong68 || rankAmong68 < 1) return 5.0;
+  const r = Math.min(rankAmong68, 68);
+  return parseFloat((10 * (1 - (r - 1) / 67)).toFixed(1));
+}
+
+// ── Pre-score all 68 teams once ───────────────────────────────────
+// Step 1: fetch ESPN + advanced stats for all teams in parallel
+// Step 2: apply deterministic formula for rank-based metrics
+// Step 3: one AI call scoring all 68 on stat-based metrics simultaneously
+// Scores are locked for the entire session — never change between rounds.
+async function prescoreAllTeams(onProgress) {
+  if (prescoringDone) return;
+  if (prescoringInProgress) return;
+  prescoringInProgress = true;
+
+  // Collect all 68 teams from the bracket
+  const allTeams = [];
+  for (const [region, data] of Object.entries(INITIAL_BRACKET)) {
+    for (const team of data.teams) {
+      allTeams.push({ name: team.name, seed: team.seed, region });
+    }
+  }
+
+  onProgress?.('Fetching stats for all 68 teams…', 5);
+
+  // ── Step 1: Force-clear ALL cached stats for fresh fetch ───────
+  // Wipe both the ESPN fetched flag AND all shooting/efficiency stats.
+  // Stale null values from prior failed fetches (old Worker versions)
+  // would otherwise survive and produce 5.0 defaults for those metrics.
+  allTeams.forEach(t => {
+    const key = t.name.toLowerCase();
+    if (teamStatsCache[key]) {
+      // Clear ESPN stats fetch flag AND cached team ID so wrong IDs don't persist
+      delete teamStatsCache[key].fetched;
+      delete teamStatsCache[key].advFetched;
+      delete teamStatsCache[key].espnId;      // force re-lookup of team ID
+      delete teamStatsCache[key].displayName;
+      // Explicitly null out all computed shooting stats so stale zeros/nulls don't survive
+      delete teamStatsCache[key].efgPct;
+      delete teamStatsCache[key].ftPct;
+      delete teamStatsCache[key].threePct;
+      delete teamStatsCache[key].orebPerGame;
+      delete teamStatsCache[key].toRate;
+      delete teamStatsCache[key].ftaPerGame;
+      delete teamStatsCache[key].stlPerGame;
+      delete teamStatsCache[key].blkPerGame;
+      delete teamStatsCache[key].drebPerGame;
+      delete teamStatsCache[key].netRank;
+      delete teamStatsCache[key].sovRank;
+      delete teamStatsCache[key].adjEM;
+      delete teamStatsCache[key].adjO;
+      delete teamStatsCache[key].adjD;
+      delete teamStatsCache[key].adjT;
+    }
+  });
+
+  const espnMap = {};
+  await Promise.allSettled(
+    allTeams.map(t => Promise.all([
+      fetchTeamStats(t.name),
+      fetchAdvancedStats(t.name),
+    ]).then(([espn, adv]) => {
+      // Merge carefully — adv values take priority for rank fields
+      const merged = { ...espn };
+      if (adv.netRank != null) merged.netRank = adv.netRank;
+      if (adv.sovRank != null) merged.sovRank = adv.sovRank;
+      if (adv.adjEM  != null) merged.adjEM  = adv.adjEM;
+      if (adv.adjO   != null) merged.adjO   = adv.adjO;
+      if (adv.adjD   != null) merged.adjD   = adv.adjD;
+      if (adv.adjT   != null) merged.adjT   = adv.adjT;
+      espnMap[t.name.toLowerCase()] = merged;
+      return merged;
+    }))
+  );
+
+  onProgress?.('Computing deterministic rank scores…', 35);
+
+  // ── Step 2: Rank all teams within the 68-team field ──────────────
+  // For every metric with a numeric raw value, sort teams best→worst
+  // and assign position 1–68, then convert to 0–10 score.
+  // This covers rank metrics (NET, SOV, adjEM) AND
+  // stat metrics where we have reliable ESPN data (eFG%, road record, etc.)
+
+  // Define all metrics with their raw data source and direction
+  const rankableMetrics = [
+    // Composite ratings — from WarrenNolan + Torvik
+    { id: 'net_rank',  key: e => e.netRank,                         higherIsBetter: false },
+    { id: 'sov_rank',  key: e => e.sovRank,                         higherIsBetter: false },
+    { id: 'adj_o',     key: e => e.adjO,                            higherIsBetter: true  },
+    { id: 'adj_d',     key: e => e.adjD,                            higherIsBetter: false },
+    // Efficiency & Shooting — all from ESPN team-stats endpoint
+    { id: 'efg_pct',   key: e => parseFloat(e.efgPct||''),          higherIsBetter: true  },
+    { id: 'oreb',      key: e => parseFloat(e.orebPerGame||''),      higherIsBetter: true  }, // now rate% not raw count
+    { id: 'three_pct', key: e => parseFloat(e.threePct||''),        higherIsBetter: true  },
+    { id: 'ft_pct',    key: e => parseFloat(e.ftPct||''),           higherIsBetter: true  },
+    // Ball Security — from ESPN team-stats endpoint
+    { id: 'to_rate',   key: e => parseFloat(e.toRate||''),          higherIsBetter: false },
+    { id: 'fta',       key: e => parseFloat(e.ftaPerGame||''),      higherIsBetter: true  },
+    { id: 'stl',       key: e => parseFloat(e.stlPerGame||''),       higherIsBetter: true  },
+    { id: 'blk',       key: e => parseFloat(e.blkPerGame||''),       higherIsBetter: true  },
+    { id: 'dreb',      key: e => parseFloat(e.drebPerGame||''),      higherIsBetter: true  },
+
+  ];
+
+  const deterministicScores = {}; // deterministicScores[teamName][metricId] = 0-10
+  allTeams.forEach(t => { deterministicScores[t.name] = {}; });
+
+  for (const cfg of rankableMetrics) {
+    if (cfg.key({})=== null || cfg.key({}) !== null && false) {
+      // handled below — skip null-key metrics
+    }
+    // Get raw values for teams that have valid data
+    const teamVals = allTeams.map(t => ({
+      name: t.name,
+      val: cfg.key(espnMap[t.name.toLowerCase()] || {}),
+    })).filter(t => t.val !== null && !isNaN(t.val));
+
+    if (teamVals.length < 3) continue; // not enough data — skip to AI
+
+    // Sort best first
+    teamVals.sort((a, b) => cfg.higherIsBetter ? b.val - a.val : a.val - b.val);
+
+    // Assign rank position and convert to 0-10
+    teamVals.forEach((t, i) => {
+      // Scale position within the teams that HAVE data, then normalize to 0-10
+      const score = parseFloat((10 * (1 - i / Math.max(teamVals.length - 1, 1))).toFixed(1));
+      deterministicScores[t.name][cfg.id] = score;
+    });
+    // Teams with no data get the median (5.0) — conservative fallback
+    allTeams.forEach(t => {
+      if (deterministicScores[t.name][cfg.id] === undefined) {
+        deterministicScores[t.name][cfg.id] = 5.0;
+      }
+    });
+  }
+
+  onProgress?.('Finalizing all metric scores…', 60);
+
+  // ── Step 3: All metrics now scored deterministically ────────────
+  // All 13 metrics have reliable raw data from ESPN/WarrenNolan/Torvik.
+  // ESPN team-stats endpoint now returns eFG%, FT%, 3PT%, oreb, TO rate, FTA
+  // using robust multi-abbreviation parsing. No AI scoring call needed.
+  const aiScores = {};
+  console.log('[Pre-score] All 13 metrics scored deterministically from live data.');
+
+  onProgress?.('Finalizing scores…', 90);
+
+  // ── Step 4: Merge deterministic + AI scores into metricScoreCache ─
+  const clamp = v => Math.min(10, Math.max(0, parseFloat(v) || 5.0));
+
+  // Fuzzy match team name in AI response
+  const findAIKey = (name, obj) => {
+    if (obj[name] !== undefined) return name;
+    const nameLower = name.toLowerCase();
+    return Object.keys(obj).find(k => {
+      const kl = k.toLowerCase();
+      return kl === nameLower ||
+        kl.replace(/[^a-z0-9]/g,'').includes(nameLower.replace(/[^a-z0-9]/g,'').slice(0,6)) ||
+        nameLower.replace(/[^a-z0-9]/g,'').includes(kl.replace(/[^a-z0-9]/g,'').slice(0,6));
+    });
+  };
+
+  // Build final score cache — log any teams with missing rank data for debugging
+  const missingRankData = [];
+  allTeams.forEach(t => {
+    const key = t.name.toLowerCase();
+    const det = deterministicScores[t.name] || {};
+    const aiKey = findAIKey(t.name, aiScores);
+    const ai = aiKey ? aiScores[aiKey] : {};
+
+    // Track missing rank data
+    const e = espnMap[key] || {};
+    if (!e.netRank) {
+      missingRankData.push(t.name);
+      // Assign seed-based fallback rank so 16-seeds don't get 5.0 (median)
+      // A 16-seed with no WN data is clearly bottom-quarter of field
+      // Map seed to approximate rank among 68: seed 16 → rank ~58-68
+      const seedFallbackRank = {
+        1: 4, 2: 10, 3: 18, 4: 26, 5: 34, 6: 38, 7: 42, 8: 46,
+        9: 50, 10: 52, 11: 54, 12: 56, 13: 58, 14: 60, 15: 64, 16: 67,
+      };
+      const fallback = seedFallbackRank[t.seed] || 50;
+      if (!deterministicScores[t.name]) deterministicScores[t.name] = {};
+      if (deterministicScores[t.name]['net_rank'] === undefined)
+        deterministicScores[t.name]['net_rank'] = rankToScore(fallback);
+      if (deterministicScores[t.name]['sov_rank'] === undefined)
+        deterministicScores[t.name]['sov_rank'] = rankToScore(fallback);
+      if (deterministicScores[t.name]['adj_o'] === undefined)
+        deterministicScores[t.name]['adj_o'] = rankToScore(fallback);
+      if (deterministicScores[t.name]['adj_d'] === undefined)
+        deterministicScores[t.name]['adj_d'] = rankToScore(fallback + 5); // weak teams also defend poorly
+    }
+
+    const scores = {};
+    const missingMetrics = [];
+    METRICS.forEach(m => {
+      if (det[m.id] !== undefined) {
+        scores[m.id] = det[m.id]; // deterministic from real data
+      } else {
+        // aiScores is empty — all metrics should be deterministic
+        // If still missing, log it so we can diagnose
+        missingMetrics.push(m.id);
+        scores[m.id] = 5.0; // median fallback
+      }
+    });
+    if (missingMetrics.length > 0) {
+      console.warn('[Pre-score] ' + t.name + ' missing deterministic scores for:', missingMetrics);
+    }
+    metricScoreCache[key] = scores;
+  });
+
+  if (missingRankData.length > 0) {
+    console.warn('[Pre-score] Missing NET rank data for:', missingRankData);
+  }
+
+  prescoringDone = true;
+  prescoringInProgress = false;
+  onProgress?.(`All 68 teams scored ✓${missingRankData.length > 0 ? ' ('+missingRankData.length+' teams missing rank data — see console)' : ''}`, 100);
+}
+
+// ── fetchMetricScores: now just reads from cache ──────────────────
+// Cache is populated by prescoreAllTeams() before any matchup runs.
+// Scores are identical across all rounds for every team.
+async function fetchMetricScores(team1Name, team2Name, espn1, espn2) {
+  const key1 = team1Name.toLowerCase();
+  const key2 = team2Name.toLowerCase();
+  // Return from cache if available
+  if (metricScoreCache[key1] && metricScoreCache[key2]) {
+    return [metricScoreCache[key1], metricScoreCache[key2]];
+  }
+  // Fallback: trigger full pre-score if somehow missed
+  await prescoreAllTeams();
+  return [metricScoreCache[key1] || {}, metricScoreCache[key2] || {}];
+}
+
+// ── Step 2: deterministic formula with seed prior + injury adjustment ──
+function computeWinProbability(scores1, scores2, seed1, seed2, inj1, inj2, espn1, espn2) {
+  let weighted1 = 0, weighted2 = 0;
+
+  METRICS.forEach(m => {
+    const w = weights[m.id] || 0;
+    if (!w) return;
+    let s1 = scores1[m.id] || 5;
+    let s2 = scores2[m.id] || 5;
+
+    boostRules.forEach(b => {
+      if (b.metric !== m.id) return;
+      const boost = parseFloat(b.boost) / 100;
+      const threshold = parseFloat(b.value);
+      if (evalOp(s1, b.op, threshold)) s1 = Math.min(10, s1 * (1 + boost));
+      if (evalOp(s2, b.op, threshold)) s2 = Math.min(10, s2 * (1 + boost));
+    });
+
+    weighted1 += s1 * w;
+    weighted2 += s2 * w;
+  });
+
+  // Compute weighted average score for each team separately, then subtract.
+  // This keeps the gap on the original 0-10 scale the AI used for scoring.
+  // e.g. Duke avg 7.5, Siena avg 4.2 → gap = 3.3 (cleanly on 0-10 scale).
+  // The old approach divided by totalWeight instead of per-team totalWeight,
+  // which distorted the gap when weights varied across metrics.
+  const totalWeight = METRICS.reduce((s, m) => s + (weights[m.id]||0), 0);
+  const avgScore1 = totalWeight > 0 ? weighted1 / totalWeight : 5;
+  const avgScore2 = totalWeight > 0 ? weighted2 / totalWeight : 5;
+  const weightedDiff = avgScore1 - avgScore2;
+
+  // Logistic at k=12 on 0-10 scale
+  // k=12 matches market-implied probabilities across all seed matchups:
+  // 1v16 → ~97-99%, 4v13 → ~85%, 8v9 → ~53%
+  const k = 12;
+  const x = (weightedDiff / 10) * k;
+  const metricProb = 1 / (1 + Math.exp(-x));
+
+
+  // Blend with historical seed win rate using matchup-specific prior weights.
+  // Prior weight reflects how much predictive signal the seed gap actually carries:
+  //   1v16, 2v15 → 45%  (history is overwhelming — 94–99% win rates)
+  //   3v14, 4v13 → 30%  (strong lean but upsets happen — metrics still matter)
+  //   5v12, 6v11 → 15%  (competitive territory — metrics dominate)
+  //   7v10, 8v9  →  0%  (no meaningful seed signal — pure metrics)
+  const seedPrior = getSeedPrior(seed1, seed2);
+  let blendedProb;
+  if (seedPrior !== null) {
+    const s1 = parseInt(seed1) || 8;
+    const s2 = parseInt(seed2) || 8;
+    const lo = Math.min(s1, s2);
+    const hi = Math.max(s1, s2);
+    const matchupKey = lo + '_' + hi;
+
+    // Explicit prior weights by matchup tier — 0 means pure metrics
+    const PRIOR_WEIGHTS = {
+      '1_16': 0.45, '2_15': 0.45,
+      '3_14': 0.30, '4_13': 0.30,
+      '5_12': 0.15, '6_11': 0.15,
+      '7_10': 0.00, '8_9':  0.00,
+    };
+    const priorWeight = PRIOR_WEIGHTS[matchupKey] !== undefined
+      ? PRIOR_WEIGHTS[matchupKey]
+      : 0.10; // small default for later-round matchups with no specific mapping
+
+    blendedProb = priorWeight === 0
+      ? metricProb
+      : metricProb * (1 - priorWeight) + seedPrior * priorWeight;
+
+  } else {
+    blendedProb = metricProb;
+  }
+
+  // Apply injury adjustment — directly reduces probability proportional to
+  // the injured player's share of significant-player minutes
+  const injPenalty1 = (inj1?.injuryImpact || 0) * 0.25;
+  const injPenalty2 = (inj2?.injuryImpact || 0) * 0.25;
+  const injAdjusted = blendedProb - injPenalty1 + injPenalty2;
+
+  // ── Concentration risk adjustment ────────────────────────────
+  // Top 2 scorers >55% combined = scaling penalty (more lopsided = bigger hit)
+  // Applied symmetrically — penalizes whichever team is concentrated
+  let concAdj = 0;
+  const share1 = espn1?.top2ScoringShare || 0;
+  const share2 = espn2?.top2ScoringShare || 0;
+  if (share1 > 55) {
+    // Penalty scales: 55-60%=-2%, 60-65%=-4%, 65-70%=-6%, >70%=-8%
+    const excess1 = Math.min(share1 - 55, 15);
+    concAdj -= (excess1 / 15) * 0.08;
+  }
+  if (share2 > 55) {
+    const excess2 = Math.min(share2 - 55, 15);
+    concAdj += (excess2 / 15) * 0.08; // T2 concentrated → T1 benefits
+  }
+
+  // ── Pace mismatch adjustment ──────────────────────────────────
+  // Uses Bart Torvik adjusted tempo (adjT) from espn cache — more reliable
+  // than the AI pace score since pace is no longer a scored metric.
+  // adjT = adjusted possessions per 40 minutes vs average opponent.
+  let paceAdj = 0;
+  const pace1Poss = espn1?.adjT || null;
+  const pace2Poss = espn2?.adjT || null;
+  if (pace1Poss && pace2Poss) {
+    const paceDiff = pace1Poss - pace2Poss; // positive = T1 faster
+    if (Math.abs(paceDiff) >= 8) {
+      const maxPaceAdj = 0.08;
+      const scaledAdj = Math.min(Math.abs(paceDiff) / 16, 1) * maxPaceAdj;
+      paceAdj = paceDiff > 0 ? -scaledAdj : scaledAdj;
+    }
+  }
+
+  const finalProb = Math.min(0.97, Math.max(0.03,
+    injAdjusted + concAdj + paceAdj
+  ));
+  return Math.round(finalProb * 100);
+}
+
+function evalOp(val, op, threshold) {
+  if (op === '>=') return val >= threshold;
+  if (op === '<=') return val <= threshold;
+  if (op === '>')  return val > threshold;
+  if (op === '<')  return val < threshold;
+  return false;
+}
+
+// ── Step 3: ask AI for narrative only (no numbers) ───────────────
+async function fetchMatchupAnalysis(r, idx) {
+  const m = rounds[r]?.[idx];
+  if (!m?.result) return;
+  const btn = document.querySelector(`#analysis-${r}-${idx} button`);
+  const container = document.getElementById(`analysis-${r}-${idx}`);
+  if (!container) return;
+  if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
+
+  const scores1 = m.result.scores1 || {};
+  const scores2 = m.result.scores2 || {};
+  const prob1   = m.result.prob1;
+  const espn1   = teamStatsCache[m.t1.name.toLowerCase()] || {};
+  const espn2   = teamStatsCache[m.t2.name.toLowerCase()] || {};
+
+  // Fetch injury reports now (on demand)
+  let inj1 = m.result.inj1 || null;
+  let inj2 = m.result.inj2 || null;
+  if (!inj1 || !inj2) {
+    if (btn) btn.textContent = 'Checking injuries…';
+    const espn1 = teamStatsCache[m.t1.name.toLowerCase()] || {};
+    const espn2 = teamStatsCache[m.t2.name.toLowerCase()] || {};
+    const totalGames = espn1.awayGames ? (espn1.awayGames + espn1.closeGames + 5) : 30;
+    try {
+      const [ir1, ir2] = await Promise.allSettled([
+        espn1.espnId ? fetchInjuryReport(m.t1.name, espn1.espnId, totalGames) : Promise.resolve(null),
+        espn2.espnId ? fetchInjuryReport(m.t2.name, espn2.espnId, totalGames) : Promise.resolve(null),
+      ]);
+      if (ir1.status === 'fulfilled') inj1 = ir1.value;
+      if (ir2.status === 'fulfilled') inj2 = ir2.value;
+      m.result.inj1 = inj1; m.result.inj2 = inj2;
+    } catch(e) {}
+  }
+
+  if (btn) btn.textContent = 'Writing analysis…';
+  const narrativeText = await fetchNarrative(
+    m.t1.name, m.t2.name, scores1, scores2, prob1,
+    ROUND_NAMES[r], m.region, espn1, espn2, r
+  );
+
+  const keyEdge      = narrativeText.match(/KEY_EDGE:\s*(.+)/i)?.[1]?.trim() || '';
+  const analysis     = narrativeText.match(/ANALYSIS:\s*([\s\S]+?)(?=COACHING_EDGE:|UPSET_ALERT:|$)/i)?.[1]?.trim() || narrativeText;
+  const coachingEdge = narrativeText.match(/COACHING_EDGE:\s*(.+)/i)?.[1]?.trim() || '';
+  const upsetRaw     = narrativeText.match(/UPSET_ALERT:\s*(.+)/i)?.[1]?.trim() || '';
+
+  // Store on result for future reference
+  m.result.keyEdge      = keyEdge;
+  m.result.analysis     = analysis;
+  m.result.coachingEdge = coachingEdge;
+  m.result.upsetAlert   = upsetRaw.toLowerCase().startsWith('yes');
+  m.result.upsetReason  = m.result.upsetAlert ? upsetRaw : '';
+
+  // Render inline
+  container.innerHTML = `
+    ${keyEdge ? `<div class="rsec"><span class="rlabel">Key Edge</span><div class="rval">${keyEdge}</div></div>` : ''}
+    ${analysis ? `<div class="rsec"><div class="rval">${analysis}</div></div>` : ''}
+    ${coachingEdge ? `<div class="rsec"><span class="rlabel">Coaching</span><div class="rval" style="color:var(--muted)">${coachingEdge}</div></div>` : ''}
+    ${m.result.upsetAlert ? `<div class="rsec"><span class="rlabel" style="color:var(--red)">⚡ Upset Alert</span><div class="rval" style="color:var(--red)">${upsetRaw.replace(/^yes[,\-:\s]*/i,'')}</div></div>` : ''}
+  `;
+}
+
+async function fetchNarrative(t1name, t2name, scores1, scores2, prob1, roundName, region, espnStats1, espnStats2, roundIdx) {
+  // Build metric comparison for context
+  const topDiffs = METRICS
+    .map(m => ({label: m.label, diff: (scores1[m.id]||5) - (scores2[m.id]||5), w: weights[m.id]||0}))
+    .filter(d => d.w > 0)
+    .sort((a,b) => Math.abs(b.diff * b.w) - Math.abs(a.diff * a.w))
+    .slice(0, 5)
+    .map(d => `  ${d.label}: ${t1name} ${d.diff>0?'+'+(d.diff).toFixed(1):(d.diff).toFixed(1)} vs ${t2name}`)
+    .join('\n');
+
+  // Coaching context — weight increases in later rounds per spec
+  const isLaterRound = (roundIdx || 0) >= 1; // Round of 32 onward
+  const coachingInstruction = isLaterRound
+    ? `Also assess each head coach's NCAA tournament record (career W-L, deepest run, and record specifically as a favorite vs underdog). A coach with a strong track record winning as underdog or consistently reaching the Sweet 16+ deserves a coaching edge note. This is ESPECIALLY important in Round of 32 and beyond.`
+    : `Briefly note if either coach has a notable tournament track record (e.g. a first-time head coach or a proven Final Four coach).`;
+
+  const prompt = `You are a college basketball analyst. Based on these pre-calculated scores and win probability, write a brief matchup summary.
+
+Matchup: ${t1name} vs ${t2name} (${roundName}, ${region})
+Win probability: ${t1name} ${prob1}%, ${t2name} ${100-prob1}%
+
+Top metric differentials (team score difference on 0-10 scale):
+${topDiffs}
+
+${coachingInstruction}
+
+Write ONLY in this format, no preamble:
+KEY_EDGE: [one sentence — the single most decisive metric gap]
+ANALYSIS: [3 sentences — explain the probability using the metric differentials above. Be specific.]
+COACHING_EDGE: [one sentence — coaching tournament experience edge if meaningful, or "Even" if comparable]
+UPSET_ALERT: [Yes/No] — [if Yes, one sentence explaining the upset risk]`;
+
+  const resp = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      temperature: 0,
+      messages: [{role:'user', content: prompt}]
+    })
+  });
+  const data = await resp.json();
+  return data.content?.map(c=>c.text||'').join('').trim() || '';
+}
+
+// ── Run pre-score for all 68 teams ───────────────────────────────
+async function runPrescore() {
+  const btn = document.getElementById('prescore-btn');
+  const status = document.getElementById('prescore-status');
+  const pbar = document.getElementById('prescore-pbar');
+  const pfill = document.getElementById('prescore-pfill');
+
+  if (prescoringDone) {
+    status.textContent = 'Already scored — clear cache in Settings to re-score.';
+    status.style.color = 'var(--green)';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Scoring…';
+  pbar.style.display = 'block';
+  status.style.color = 'var(--muted)';
+
+  await prescoreAllTeams((msg, pct) => {
+    status.textContent = msg;
+    pfill.style.width = pct + '%';
+  });
+
+  btn.textContent = 'Pre-score complete ✓';
+  btn.style.background = 'var(--green)';
+  status.style.color = 'var(--green)';
+  status.textContent = 'All 68 teams scored. Matchup analysis will use consistent scores across all rounds.';
+}
+
+// ── Main entry point ─────────────────────────────────────────────
+async function analyzeMatchup(r, idx) {
+  const m = rounds[r][idx];
+  const mid = `r${r}_${idx}`;
+  const btn = document.getElementById('btn-'+mid);
+  const rd  = document.getElementById('rd-'+mid);
+  if (!btn || !rd) return;
+
+  btn.textContent = '...';
+  btn.classList.add('loading');
+  rd.classList.add('open');
+  rd.innerHTML = '<div class="loading-txt">Calculating…</div>';
+  const _t0 = performance.now();
+
+  const pathProb1 = m.t1.pathProb !== undefined ? m.t1.pathProb : 100;
+  const pathProb2 = m.t2.pathProb !== undefined ? m.t2.pathProb : 100;
+
+  // ── Phase 1: Read from pre-score cache — no re-fetching ───────
+  // All ESPN + advanced stats were fetched during Pre-score and are in teamStatsCache.
+  // Reading from cache is instant — no network calls needed here.
+  const espn1 = teamStatsCache[m.t1.name.toLowerCase()] || null;
+  const espn2 = teamStatsCache[m.t2.name.toLowerCase()] || null;
+
+  // ── Phase 1b: injury reports deferred — run via Get Analysis ───
+  let inj1 = null, inj2 = null;
+
+  // ── Phase 2: read metric scores from pre-score cache ────────────
+  // Scores were computed once for all 68 teams — consistent across rounds.
+  // If pre-score wasn't run, trigger it now with a warning.
+  let scores1, scores2;
+  console.log('[Analyze] After cache read:', (performance.now()-_t0).toFixed(0)+'ms', 'prescoringDone:', prescoringDone);
+  if (!prescoringDone) {
+    rd.innerHTML = '<div class="loading-txt">Pre-scoring all 68 teams first…</div>';
+    await prescoreAllTeams((msg, pct) => {
+      const el = document.getElementById('prescore-status');
+      if (el) { el.textContent = msg; el.style.color = 'var(--muted)'; }
+      const pf = document.getElementById('prescore-pfill');
+      if (pf) pf.style.width = pct + '%';
+    });
+    const btn2 = document.getElementById('prescore-btn');
+    if (btn2) { btn2.textContent = 'Pre-score complete ✓'; btn2.style.background = 'var(--green)'; }
+  }
+  try {
+    const scorePair = await fetchMetricScores(m.t1.name, m.t2.name, espn1, espn2);
+    scores1 = scorePair[0]; scores2 = scorePair[1];
+  } catch(e) {
+    rd.innerHTML = `<div style="color:var(--red)">Error reading metric scores: ${e.message}</div>`;
+    btn.textContent = 'Retry ↗'; btn.classList.remove('loading'); return;
+  }
+
+  // ── Phase 3: deterministic probability (seed prior + injury) ──
+  const prob1 = computeWinProbability(scores1, scores2, m.t1.seed, m.t2.seed, inj1, inj2, espn1, espn2);
+  const prob2 = 100 - prob1;
+
+  // Simulation: run numSims independent games, winner = majority (> numSims/2)
+  // numSims options: 1, 3, 5, 7, 1001 — set via sim selector buttons
+  const _n = numSims || 7;
+  let t1wins = 0;
+  const p1 = prob1 / 100;
+  for (let g = 0; g < _n; g++) {
+    if (Math.random() < p1) t1wins++;
+  }
+  const t1won = t1wins > _n / 2;
+  const seriesResult = t1won ? `${t1wins}-${_n-t1wins}` : `${t1wins}-${_n-t1wins}`;
+  const winnerTeam = t1won ? m.t1 : m.t2;
+  const winProb    = t1won ? prob1 : prob2;
+  const newPathProb = +(( (t1won ? pathProb1 : pathProb2) * winProb / 100)).toFixed(1);
+
+  console.log('[Analyze] After simulation:', (performance.now()-_t0).toFixed(0)+'ms');
+  // ── Phase 4: narrative is now optional — rendered on demand ─────
+  const keyEdge     = '';
+  const analysis    = '';
+  const coachingEdge = '';
+  const upsetAlert  = false;
+  const upsetReason = '';
+
+  // ── Phase 5: odds (hardcoded opening lines + live API fallback) ─
+  let odds = null;
+  // Try hardcoded opening odds first (always available)
+  const staticOdds = lookupOdds(m.t1.name, m.t2.name);
+  if (staticOdds) {
+    const impliedPct = Math.round(moneylineToProb(staticOdds.t1));
+    const line = staticOdds.t1 > 0 ? '+'+staticOdds.t1 : staticOdds.t1;
+    odds = {line, implied: impliedPct, edge: Math.round(prob1 - impliedPct), source: 'DraftKings'};
+  }
+  // Override with live API odds if key configured (more current)
+  // Live odds disabled — direct API call causes CORS error when run from local file
+  // Use hardcoded opening lines only (always available, no network call needed)
+
+  // Build concentration risk summary for display
+  const buildConcRisk = (espn, prob_penalty_pct) => {
+    if (!espn || !espn.top2ScoringShare || espn.top2ScoringShare <= 55) return null;
+    const excess = Math.min(espn.top2ScoringShare - 55, 15);
+    const penalty = Math.round((excess / 15) * 8);
+    return { share: espn.top2ScoringShare.toFixed(1), names: espn.top2ScorerNames || [], penalty };
+  };
+  const concRisk1 = buildConcRisk(espn1);
+  const concRisk2 = buildConcRisk(espn2);
+
+  const result = {
+    winner: winnerTeam.name,
+    t1name: m.t1.name, t2name: m.t2.name,
+    prob1, prob2,
+    seriesResult,
+    scores1, scores2,
+    inj1, inj2,
+    concRisk1, concRisk2,
+
+    pathProb1: +(pathProb1 * prob1/100).toFixed(1),
+    pathProb2: +(pathProb2 * prob2/100).toFixed(1),
+    pathProb_winner: newPathProb,
+    keyEdge, analysis, coachingEdge, upsetAlert, upsetReason, odds
+  };
+
+  rounds[r][idx].result = result;
+  rounds[r][idx]._winnerObj = {...winnerTeam, pathProb: newPathProb};
+
+  // Rebuild future rounds so placeholders resolve to actual winners immediately
+  rebuildAllFutureRounds();
+
+  rd.innerHTML = renderResultHTML(result, mid);
+  document.getElementById('mr-'+mid).classList.add('analyzed');
+  document.getElementById('tc1-'+mid).className = 'tcell ' + (t1won?'winner':'loser');
+  document.getElementById('tc2-'+mid).className = 'tcell ' + (!t1won?'winner':'loser');
+
+  const tc1 = document.getElementById('tc1-'+mid);
+  const tc2 = document.getElementById('tc2-'+mid);
+  let ps1 = tc1.querySelector('.tprob');
+  if (!ps1) { ps1 = document.createElement('span'); ps1.className='tprob'; tc1.appendChild(ps1); }
+  ps1.style.color = probColor(prob1); ps1.textContent = prob1+'%';
+  let ps2 = tc2.querySelector('.tprob');
+  if (!ps2) { ps2 = document.createElement('span'); ps2.className='tprob'; tc2.appendChild(ps2); }
+  ps2.style.color = probColor(prob2); ps2.textContent = prob2+'%';
+
+  console.log('[Analyze] Total:', (performance.now()-_t0).toFixed(0)+'ms');
+  btn.textContent = 'Re-run ↗';
+  btn.classList.remove('loading');
+  btn.classList.add('done');
+
+  picks[`r${r}_${idx}`] = result;
+  // Only rebuild bracket view if that tab is currently visible
+  const bracketPanel = document.getElementById('panel-bracket');
+  if (bracketPanel && bracketPanel.classList.contains('active')) updateBracketView();
+}
+
+async function runCurrentRound() {
+  const r = currentRound;
+  if (!rounds[r]) return;
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  document.getElementById('pfill').style.width = '0%';
+  document.getElementById('plabel').textContent = '';
+
+  const matchups = rounds[r];
+  for (let i = 0; i < matchups.length; i++) {
+    document.getElementById('pfill').style.width = (i/matchups.length*100)+'%';
+    document.getElementById('plabel').textContent = `${i}/${matchups.length} analyzed`;
+    await analyzeMatchup(r, i);
+    await new Promise(res => setTimeout(res, 900));
+  }
+  document.getElementById('pfill').style.width = '100%';
+  document.getElementById('plabel').textContent = `${matchups.length}/${matchups.length} complete`;
+
+  // Rebuild all future rounds with resolved winners
+  rebuildAllFutureRounds();
+  buildRoundTabs();
+  renderSimulator();
+  btn.disabled = false;
+}
+
+
+// ─── HARDCODED OPENING ODDS (DraftKings, March 15 2026) ───────────
+// Key = "team1|team2" lowercase, value = {t1: moneyline, t2: moneyline}
+const OPENING_ODDS = {
+  // EAST
+  'duke|siena':                   {t1: -20000, t2: 3500},
+  'ohio state|tcu':               {t1: -218,   t2: 180},
+  "st. john's|northern iowa":     {t1: -425,   t2: 330},
+  'kansas|cal baptist':           {t1: -535,   t2: 400},
+  'louisville|south florida':     {t1: -345,   t2: 275},
+  'michigan state|north dakota state': {t1: -1600, t2: 950},
+  'ucla|ucf':                     {t1: -278,   t2: 225},
+  'uconn|furman':                 {t1: -8000,  t2: 2200},
+  // WEST
+  'arizona|liu':                  {t1: -100000, t2: 5000},
+  'villanova|utah state':         {t1: 114,    t2: -135},  // Utah State favored
+  'wisconsin|high point':         {t1: -950,   t2: 625},
+  'arkansas|hawaii':              {t1: -2400,  t2: 1200},
+  'byu|texas / nc state':         {t1: -162,   t2: 136},   // BYU favored (vs winner)
+  'gonzaga|kennesaw state':       {t1: -8000,  t2: 2200},
+  'miami fl|missouri':            {t1: -155,   t2: 130},
+  'purdue|queens':                {t1: -8000,  t2: 2200},
+  // MIDWEST
+  'michigan|umbc / howard':       {t1: -20000, t2: 3500},  // vs First Four winner
+  'georgia|saint louis':          {t1: -148,   t2: 124},
+  'texas tech|akron':             {t1: -410,   t2: 320},
+  'alabama|hofstra':              {t1: -675,   t2: 490},
+  'tennessee|smu / miami oh':     {t1: -325,   t2: 260},   // SMU favored in First Four
+  'virginia|wright state':        {t1: -3200,  t2: 1400},
+  'kentucky|santa clara':         {t1: -162,   t2: 136},
+  'iowa state|tennessee state':   {t1: -6500,  t2: 2000},
+  // SOUTH
+  'florida|prairie view / lehigh':{t1: -20000, t2: 3500},  // vs First Four winner
+  'clemson|iowa':                 {t1: 120,    t2: -142},   // Iowa favored
+  'vanderbilt|mcneese':           {t1: -550,   t2: 410},
+  'nebraska|troy':                {t1: -1450,  t2: 850},
+  'north carolina|vcu':           {t1: -142,   t2: 120},
+  'illinois|penn':                {t1: -20000, t2: 3500},
+  "saint mary's|texas a&m":      {t1: -175,   t2: 145},
+  'houston|idaho':                {t1: -10000, t2: 3000},
+};
+
+function lookupOdds(t1name, t2name) {
+  const k1 = t1name.toLowerCase().replace(/[^a-z0-9 /&'.]/g, '').trim();
+  const k2 = t2name.toLowerCase().replace(/[^a-z0-9 /&'.]/g, '').trim();
+  const key = k1 + '|' + k2;
+  const keyRev = k2 + '|' + k1;
+  if (OPENING_ODDS[key])    return {t1: OPENING_ODDS[key].t1, t2: OPENING_ODDS[key].t2};
+  if (OPENING_ODDS[keyRev]) return {t1: OPENING_ODDS[keyRev].t2, t2: OPENING_ODDS[keyRev].t1};
+  // Fuzzy: try first word of each team
+  const w1 = k1.split(' ')[0];
+  const w2 = k2.split(' ')[0];
+  for (const [k, v] of Object.entries(OPENING_ODDS)) {
+    const [a, b] = k.split('|');
+    if (a.startsWith(w1) && b.startsWith(w2)) return {t1: v.t1, t2: v.t2};
+    if (a.startsWith(w2) && b.startsWith(w1)) return {t1: v.t2, t2: v.t1};
+  }
+  return null;
+}
+
+// ─── ODDS API ──────────────────────────────────────────────────────
+async function fetchOdds(team1, team2) {
+  // Route through Worker to avoid CORS (direct API call blocked from local files)
+  try {
+    const url = `${WORKER_URL}/odds?apiKey=${ODDS_API_KEY}&t1=${encodeURIComponent(team1)}&t2=${encodeURIComponent(team2)}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch(e) { return null; }
+}
+
+function moneylineToProb(ml) {
+  if (ml > 0) return 100 / (ml + 100) * 100;
+  return (-ml) / (-ml + 100) * 100;
+}
+
+function updateOddsStatusPill() {
+  const pill = document.getElementById('odds-status-pill');
+  if (ODDS_API_KEY) { pill.textContent = 'Odds API: connected'; pill.style.borderColor='rgba(45,188,114,0.3)'; pill.style.color='var(--green)'; }
+  else { pill.textContent = 'Odds API: not configured'; }
+}
+
+// ─── ROUND TABS ────────────────────────────────────────────────────
+function buildRoundTabs() {
+  const tabs = document.getElementById('round-tabs');
+  tabs.innerHTML = '';
+  ROUND_NAMES.forEach((name, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'rt' + (i === currentRound ? ' active' : '') + (rounds[i]?.every(m=>m.result) ? ' done' : '');
+    btn.textContent = name;
+    btn.onclick = () => setRound(i);
+    // All round tabs are always enabled — rounds are pre-initialized with placeholders
+    tabs.appendChild(btn);
+  });
+}
+
+function setRound(r) {
+  if (!rounds[r]) rebuildAllFutureRounds();
+  currentRound = r;
+  buildRoundTabs();
+  renderSimulator();
+}
+
+// ─── BRACKET VIEW ─────────────────────────────────────────────────
+function updateBracketView() {
+  const tree = document.getElementById('bracket-tree');
+  tree.innerHTML = '';
+  const banner = document.getElementById('champ-banner');
+  banner.innerHTML = '';
+
+  ROUND_NAMES.forEach((rname, r) => {
+    if (!rounds[r]) return;
+    const col = document.createElement('div');
+    col.className = 'bracket-round';
+    col.innerHTML = `<div class="bracket-round-hd">${rname}</div>`;
+    const slots = document.createElement('div');
+    slots.className = 'bracket-slots';
+
+    rounds[r].forEach((m, i) => {
+      const slot = document.createElement('div');
+      slot.className = 'bslot';
+      const buildTeam = (t, isWinner, prob) => {
+        const div = document.createElement('div');
+        // Show blank slot if team is a placeholder (prior matchup not yet simulated)
+        if (t.isPlaceholder) {
+          div.className = 'bteam';
+          div.style.cssText = 'opacity:0.3;border-style:dashed;cursor:default';
+          div.innerHTML = '<span class="bseed">—</span><span class="bname" style="color:var(--muted);font-style:italic">TBD</span>';
+          return div;
+        }
+        div.className = 'bteam' + (isWinner ? ' winner-team' : '') + (r===5&&isWinner?' champion':'');
+        div.innerHTML = `<span class="bseed">${t.seed||'?'}</span><span class="bname">${t.name}</span>${prob?`<span class="bpct" style="color:${probColor(prob)}">${prob}%</span>`:''}`;
+        div.title = t.name + (t.pathProb ? ` (${Math.round(t.pathProb)}% path prob)` : '');
+        div.onclick = () => { switchTab('simulate'); setRound(r); };
+        return div;
+      };
+      const t1won = m.result?.winner === m.t1.name;
+      const t2won = m.result?.winner === m.t2.name;
+      slot.appendChild(buildTeam(m.t1, t1won, m.result?.prob1));
+      slot.appendChild(buildTeam(m.t2, t2won, m.result?.prob2));
+      slots.appendChild(slot);
+    });
+
+    col.appendChild(slots);
+    tree.appendChild(col);
+
+    // Championship banner
+    if (r === 5 && rounds[5][0]?.result) {
+      const champ = rounds[5][0].result;
+      const pathProb = rounds[5][0][champ.winner === rounds[5][0].t1.name ? 't1' : 't2']?.pathProb;
+      banner.innerHTML = `<div class="championship-banner"><div class="champ-label">2026 National Champion</div><div class="champ-name">${champ.winner}</div><div class="champ-prob">${Math.round(pathProb||champ[champ.winner===rounds[5][0].t1.name?'prob1':'prob2'])}% win probability in Championship</div></div>`;
+    }
+  });
+}
+
+// ─── TEAM RANKINGS VIEW ────────────────────────────────────────────
+let rankingsSortCol = 'score';
+let rankingsSortAsc = false;
+let rankingsMetric  = 'total';
+
+const METRIC_RAW_LABELS = {
+  net_rank:  'NET Rank',  sov_rank: 'SOV Rank', adj_o: 'Adj OE',
+  adj_d: 'Adj DE',
+  efg_pct:   'eFG%',      oreb:     'OR/G',      three_pct: '3PT%',
+  ft_pct:    'FT%',       to_rate:  'TO Rate',   fta: 'FTA/G',
+  stl: 'STL/G',
+  blk: 'BLK/G',
+  dreb: 'DREB/G',
+};
+
+function setRankingMetric(mid) {
+  rankingsMetric = mid;
+  rankingsSortCol = 'score';
+  rankingsSortAsc = false;
+  document.querySelectorAll('.rmetric-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.metric === mid);
+  });
+  renderRankingsTable();
+}
+
+function updateRankingsView() {
+  const notReady = document.getElementById('rankings-not-ready');
+  const content  = document.getElementById('rankings-content');
+  if (!prescoringDone || Object.keys(metricScoreCache).length === 0) {
+    notReady.style.display = '';
+    content.style.display  = 'none';
+    return;
+  }
+  notReady.style.display = 'none';
+  content.style.display  = '';
+  renderRankingsTable();
+}
+
+function getRawValue(teamName, metricId) {
+  // Pull the raw ESPN/WN/Torvik value for display alongside the 0-10 score
+  const key = teamName.toLowerCase();
+  const e = teamStatsCache[key] || {};
+  switch(metricId) {
+    case 'net_rank':   return e.netRank   != null ? '#' + e.netRank   : null;
+    case 'sov_rank':   return e.sovRank   != null ? '#' + e.sovRank   : null;
+    case 'adj_o':      return e.adjO      != null ? e.adjO.toFixed(1)           : null;
+    case 'adj_d':      return e.adjD      != null ? e.adjD.toFixed(1)           : null;
+    case 'efg_pct':    return e.efgPct    != null ? e.efgPct + '%'   : null;
+    case 'oreb':       return e.orebPerGame != null ? e.orebPerGame   : null;
+    case 'three_pct':  return e.threePct  != null ? e.threePct + '%'  : null;
+    case 'ft_pct':     return e.ftPct     != null ? e.ftPct + '%'     : null;
+    case 'to_rate':    return e.toRate    != null ? e.toRate          : null;
+    case 'fta':        return e.ftaPerGame!= null ? e.ftaPerGame      : null;
+    case 'stl':        return e.stlPerGame  != null ? e.stlPerGame       : null;
+    case 'blk':        return e.blkPerGame  != null ? e.blkPerGame       : null;
+    case 'dreb':       return e.drebPerGame != null ? e.drebPerGame      : null;
+    default:           return null;
+  }
+}
+
+function getTeamTotal(teamName) {
+  const scores = metricScoreCache[teamName.toLowerCase()] || {};
+  const totalW = METRICS.reduce((s, m) => s + (weights[m.id] || 0), 0);
+  if (totalW === 0) return 5.0;
+  const weighted = METRICS.reduce((s, m) => s + (scores[m.id] || 5) * (weights[m.id] || 0), 0);
+  return parseFloat((weighted / totalW).toFixed(2));
+}
+
+function renderRankingsTable() {
+  const isTotal = rankingsMetric === 'total';
+  const label = document.getElementById('rankings-metric-label');
+  label.textContent = isTotal
+    ? 'Overall weighted score across all 9 metrics (0–10 scale)'
+    : `Metric: ${METRICS.find(m=>m.id===rankingsMetric)?.label || rankingsMetric} — weight ${weights[rankingsMetric] || 0}`;
+
+  // Build row data
+  const allTeamNames = Object.keys(metricScoreCache);
+  // Find team objects for seed/region
+  const teamObjects = {};
+  for (const [region, data] of Object.entries(INITIAL_BRACKET)) {
+    (data.teams || []).forEach(t => { teamObjects[t.name] = { seed: t.seed, region }; });
+  }
+
+  const rows = allTeamNames.map(key => {
+    const scores = metricScoreCache[key] || {};
+    const teamObj = teamObjects[Object.keys(teamObjects).find(n => n.toLowerCase() === key) || ''] || {};
+    const displayName = Object.keys(teamObjects).find(n => n.toLowerCase() === key) || key;
+    const score = isTotal ? getTeamTotal(displayName) : (scores[rankingsMetric] ?? 5.0);
+    const raw   = isTotal ? null : getRawValue(displayName, rankingsMetric);
+    return { key, displayName, seed: teamObj.seed || '?', region: teamObj.region || '', score, raw };
+  });
+
+  // Sort
+  rows.sort((a, b) => {
+    let av = a[rankingsSortCol], bv = b[rankingsSortCol];
+    if (rankingsSortCol === 'score') { av = a.score; bv = b.score; }
+    if (rankingsSortCol === 'team')  { av = a.displayName; bv = b.displayName; }
+    if (rankingsSortCol === 'seed')  { av = parseInt(a.seed)||99; bv = parseInt(b.seed)||99; }
+    if (typeof av === 'string') return rankingsSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+    return rankingsSortAsc ? av - bv : bv - av;
+  });
+
+  // Render header
+  const scoreLabel = isTotal ? 'Total Score' : '0–10 Score';
+  const thead = document.getElementById('rankings-thead');
+  const makeTH = (label, col, extraStyle='') => {
+    const isSorted = rankingsSortCol === col;
+    return `<th class="rtable-hd${isSorted ? (rankingsSortAsc?' sorted-asc':' sorted-desc') : ''}" 
+      style="${extraStyle}" onclick="rankingsSort('${col}')">${label}</th>`;
+  };
+  thead.innerHTML =
+    makeTH('#','rank','width:36px') +
+    makeTH('Seed','seed','width:44px') +
+    makeTH('Team','team','min-width:140px') +
+    makeTH('Region','region','min-width:80px') +
+    (!isTotal ? makeTH(METRIC_RAW_LABELS[rankingsMetric]||'Raw','raw','text-align:right;min-width:70px') : '') +
+    makeTH(scoreLabel,'score','text-align:right;min-width:90px');
+
+  // Render body
+  const tbody = document.getElementById('rankings-tbody');
+  const maxScore = Math.max(...rows.map(r => r.score), 0.1);
+  tbody.innerHTML = rows.map((row, i) => {
+    const pct = Math.min(100, (row.score / 10) * 100);
+    const barColor = row.score >= 7 ? 'var(--green)' : row.score >= 4.5 ? 'var(--accent)' : 'var(--muted2)';
+    const scoreColor = row.score >= 7 ? 'var(--green)' : row.score >= 4.5 ? 'var(--text)' : 'var(--muted)';
+    return `<tr class="rtable-row">
+      <td class="rtable-rank">${i+1}</td>
+      <td class="rtable-seed">${row.seed}</td>
+      <td class="rtable-team">${row.displayName}<br><span class="rtable-region">${row.region}</span></td>
+      <td></td>
+      ${!isTotal ? `<td class="rtable-raw">${row.raw ?? '—'}</td>` : ''}
+      <td style="text-align:right">
+        <div class="score-bar-wrap">
+          <div class="score-bar" style="width:${Math.max(4, pct * 0.6)}px;background:${barColor}"></div>
+          <span class="rtable-score" style="color:${scoreColor}">${row.score.toFixed(1)}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function rankingsSort(col) {
+  if (rankingsSortCol === col) {
+    rankingsSortAsc = !rankingsSortAsc;
+  } else {
+    rankingsSortCol = col;
+    rankingsSortAsc = col === 'team' || col === 'seed';
+  }
+  renderRankingsTable();
+}
+
+// ─── SIM COUNT SELECTOR ────────────────────────────────────────────
+function setNumSims(n) {
+  numSims = n;
+  // Update button styles
+  [1,3,5,7,1001].forEach(opt => {
+    const btn = document.getElementById('simbtn-' + opt);
+    if (!btn) return;
+    const active = opt === n;
+    btn.style.border = `1px solid ${active ? 'var(--accent)' : 'var(--border2)'}`;
+    btn.style.background = active ? 'rgba(232,160,32,0.15)' : 'transparent';
+    btn.style.color = active ? 'var(--accent)' : 'var(--muted)';
+  });
+  // Update label
+  const label = document.getElementById('sims-label');
+  if (label) {
+    const desc = {
+      1: '— single game',
+      3: '— best of 3',
+      5: '— best of 5',
+      7: '— best of 7',
+      1001: '— 1001 sims (most stable)',
+    };
+    label.textContent = desc[n] || '';
+  }
+}
+
+// ─── SAVED SIMULATIONS ─────────────────────────────────────────────
+const MAX_SAVED_SIMS = 10;
+
+function getSavedSims() {
+  try { return JSON.parse(localStorage.getItem('mm2026_saved_sims') || '[]'); }
+  catch(e) { return []; }
+}
+
+function putSavedSims(sims) {
+  localStorage.setItem('mm2026_saved_sims', JSON.stringify(sims));
+}
+
+function saveCurrentSim() {
+  const nameInput = document.getElementById('save-sim-name');
+  const name = (nameInput?.value || '').trim();
+  if (!name) { nameInput?.focus(); nameInput?.setAttribute('placeholder','Please enter a name first…'); return; }
+
+  // Check there are actually results to save
+  const hasResults = rounds[0]?.some(m => m.result);
+  if (!hasResults) {
+    alert('Run at least one matchup first before saving.');
+    return;
+  }
+
+  const sims = getSavedSims();
+  if (sims.length >= MAX_SAVED_SIMS) {
+    alert('Maximum of 10 saved simulations reached. Delete one first.');
+    return;
+  }
+
+  // Snapshot current bracket results
+  const bracketSnapshot = rounds.map(round =>
+    (round || []).map(m => ({
+      t1: { name: m.t1.name, seed: m.t1.seed },
+      t2: { name: m.t2.name, seed: m.t2.seed },
+      region: m.region,
+      result: m.result ? {
+        winner: m.result.winner,
+        t1name: m.result.t1name,
+        t2name: m.result.t2name,
+        prob1: m.result.prob1,
+        prob2: m.result.prob2,
+        seriesResult: m.result.seriesResult,
+      } : null,
+    }))
+  );
+
+  // Snapshot current weights
+  const weightsSnapshot = {};
+  METRICS.forEach(m => { weightsSnapshot[m.id] = weights[m.id] || m.w; });
+
+  // Find champion
+  const r5 = rounds[5];
+  const champion = r5?.[0]?.result?.winner || null;
+
+  const sim = {
+    id: Date.now(),
+    name,
+    savedAt: new Date().toLocaleString('en-US', {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}),
+    champion,
+    bracket: bracketSnapshot,
+    weights: weightsSnapshot,
+  };
+
+  sims.unshift(sim);
+  putSavedSims(sims);
+  if (nameInput) nameInput.value = '';
+  renderSavedSims();
+  // Switch to saved tab to show the save
+  switchTab('saved');
+}
+
+function deleteSavedSim(id) {
+  const sims = getSavedSims().filter(s => s.id !== id);
+  putSavedSims(sims);
+  renderSavedSims();
+}
+
+function renameSavedSim(id) {
+  const input = document.getElementById('rename-' + id);
+  if (!input) return;
+  const newName = input.value.trim();
+  if (!newName) return;
+  const sims = getSavedSims().map(s => s.id === id ? {...s, name: newName} : s);
+  putSavedSims(sims);
+  renderSavedSims();
+}
+
+function loadSavedSim(id) {
+  const sims = getSavedSims();
+  const sim = sims.find(s => s.id === id);
+  if (!sim) return;
+
+  if (!confirm(`Load "${sim.name}"? This will replace your current bracket and weights.`)) return;
+
+  // Restore weights
+  METRICS.forEach(m => {
+    if (sim.weights[m.id] !== undefined) {
+      weights[m.id] = sim.weights[m.id];
+      const slider = document.getElementById('ws-' + m.id);
+      const val = document.getElementById('wv-' + m.id);
+      if (slider) slider.value = sim.weights[m.id];
+      if (val) val.textContent = sim.weights[m.id];
+    }
+  });
+
+  // Restore bracket results
+  sim.bracket.forEach((round, r) => {
+    if (!rounds[r]) return;
+    round.forEach((snap, i) => {
+      if (!rounds[r][i]) return;
+      rounds[r][i].result = snap.result ? {
+        ...snap.result,
+        scores1: {},
+        scores2: {},
+        inj1: null, inj2: null,
+        concRisk1: null, concRisk2: null,
+        pathProb1: 0, pathProb2: 0,
+        pathProb_winner: 0,
+        keyEdge: '', analysis: '', coachingEdge: '',
+        upsetAlert: false, upsetReason: '', odds: null,
+      } : null;
+    });
+  });
+
+  rebuildAllFutureRounds();
+  switchTab('simulate');
+  alert(`"${sim.name}" loaded. Metric weights and bracket results restored.`);
+}
+
+function renderSavedSims() {
+  const container = document.getElementById('saved-sims-list');
+  if (!container) return;
+  const sims = getSavedSims();
+
+  if (!sims.length) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--muted)">No saved simulations yet. Run a bracket then save it here.</p>';
+    return;
+  }
+
+  container.innerHTML = sims.map(sim => {
+    // Build weight pills — only show non-default weights
+    const weightPills = METRICS.map(m => {
+      const w = sim.weights[m.id] || 0;
+      return w > 0 ? `<span class="sim-weight-pill">${m.label.split(' ')[0]}: ${w}</span>` : '';
+    }).filter(Boolean).join('');
+
+    // Round-by-round winner summary
+    const roundWinners = sim.bracket.map((round, r) => {
+      const analyzed = round.filter(m => m.result);
+      if (!analyzed.length) return '';
+      return `<div style="font-size:11px;color:var(--muted);margin-bottom:3px">
+        <span style="color:var(--muted2);font-weight:500">${ROUND_NAMES[r]}:</span>
+        ${analyzed.map(m => `<span style="color:var(--text)">${m.result.winner}</span>`).join(', ')}
+      </div>`;
+    }).filter(Boolean).join('');
+
+    return `<div class="sim-card">
+      <div class="sim-card-header">
+        <div class="sim-card-name">
+          <input id="rename-${sim.id}" value="${sim.name}" 
+            onblur="renameSavedSim(${sim.id})"
+            onkeydown="if(event.key==='Enter')this.blur()">
+        </div>
+        <span class="sim-card-meta">${sim.savedAt}</span>
+      </div>
+      ${sim.champion ? `<div class="sim-card-champion">🏆 Champion: ${sim.champion}</div>` : ''}
+      <div style="margin-bottom:8px">${roundWinners}</div>
+      <div class="sim-card-weights">${weightPills}</div>
+      <div class="sim-card-actions">
+        <button class="sim-btn primary" onclick="loadSavedSim(${sim.id})">Load bracket</button>
+        <button class="sim-btn danger" onclick="deleteSavedSim(${sim.id})">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── WEIGHTS UI ───────────────────────────────────────────────────
+function buildWeightsUI() {
+  const groups = {};
+  METRICS.forEach(m => { if (!groups[m.group]) groups[m.group]=[]; groups[m.group].push(m); });
+  const grid = document.getElementById('weights-grid');
+  grid.innerHTML = '';
+  for (const [gname, metrics] of Object.entries(groups)) {
+    const card = document.createElement('div');
+    card.className = 'wcard';
+    card.innerHTML = `<div class="wcard-title">${gname}</div>`;
+    metrics.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'wrow';
+      row.innerHTML = `<div class="wname">${m.label}</div><input type="range" min="0" max="15" step="1" value="${weights[m.id]}" id="ws-${m.id}" oninput="weights['${m.id}']=parseInt(this.value);document.getElementById('wv-${m.id}').textContent=this.value"><div class="wval" id="wv-${m.id}">${weights[m.id]}</div>`;
+      card.appendChild(row);
+    });
+    grid.appendChild(card);
+  }
+}
+
+function resetWeights() {
+  METRICS.forEach(m => {
+    weights[m.id] = m.w;
+    const s = document.getElementById('ws-'+m.id);
+    if (s) { s.value = m.w; document.getElementById('wv-'+m.id).textContent = m.w; }
+  });
+}
+
+// ─── BOOST RULES ─────────────────────────────────────────────────
+function buildBoostUI() {
+  const list = document.getElementById('boost-list');
+  list.innerHTML = '';
+  boostRules.forEach((rule, i) => {
+    const row = document.createElement('div');
+    row.className = 'boost-card';
+    row.innerHTML = `
+      <select class="boost-input" id="bm-${i}" onchange="boostRules[${i}].metric=this.value">
+        ${METRICS.map(m=>`<option value="${m.id}" ${m.id===rule.metric?'selected':''}>${m.label}</option>`).join('')}
+      </select>
+      <div style="display:flex;gap:4px">
+        <select class="boost-input" style="width:48px" id="bop-${i}" onchange="boostRules[${i}].op=this.value">
+          ${['>=','<=','>','<'].map(op=>`<option ${op===rule.op?'selected':''}>${op}</option>`).join('')}
+        </select>
+        <input class="boost-input" style="width:64px" type="number" value="${rule.value}" id="bv-${i}" oninput="boostRules[${i}].value=this.value" placeholder="Value">
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span style="font-size:11px;color:var(--muted)">+</span>
+        <input class="boost-input" style="width:48px" type="number" value="${rule.boost}" id="bb-${i}" oninput="boostRules[${i}].boost=this.value" placeholder="%">
+        <span style="font-size:11px;color:var(--muted)">%</span>
+      </div>
+      <button class="del-btn" onclick="removeBoost(${i})">×</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function addBoost() {
+  boostRules.push({metric:'three_pct', op:'>=', value:'37', boost:'15'});
+  buildBoostUI();
+}
+
+function removeBoost(i) {
+  boostRules.splice(i, 1);
+  buildBoostUI();
+}
+
+// ─── SUMMARY ─────────────────────────────────────────────────────
+// updateSummary removed
+
+
+// ─── SETTINGS ─────────────────────────────────────────────────────
+function saveSettings() {
+  WORKER_URL = document.getElementById('worker-url-setting').value.trim();
+  ODDS_API_KEY = document.getElementById('odds-api-key').value.trim();
+  localStorage.setItem('worker_url', WORKER_URL);
+  localStorage.setItem('odds_api_key', ODDS_API_KEY);
+  updateOddsStatusPill();
+  const msg = document.getElementById('settings-msg');
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display='none', 2500);
+}
+
+async function testEspnConnection() {
+  const btn = document.getElementById('espn-test-btn');
+  const result = document.getElementById('espn-test-result');
+  btn.textContent = 'Testing...';
+  result.textContent = '';
+  try {
+    const data = await espnGet('/espn/team?name=duke');
+    if (data.id) {
+      result.textContent = 'Connected — found Duke (ID ' + data.id + ')';
+      result.style.color = 'var(--green)';
+    } else {
+      result.textContent = 'Worker reachable but unexpected response';
+      result.style.color = 'var(--accent)';
+    }
+  } catch(e) {
+    result.textContent = 'Failed: ' + e.message;
+    result.style.color = 'var(--red)';
+  }
+  btn.textContent = 'Test ESPN connection';
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.querySelectorAll('.nb').forEach((b,i) => {
+    b.classList.toggle('active', ['simulate','bracket','rankings','weights','predictor','upsets','saved','settings'][i]===id);
+  });
+  if (id==='bracket') updateBracketView();
+  if (id==='rankings') updateRankingsView();
+  if (id==='saved') renderSavedSims();
+  if (id==='predictor') renderPredictorTab();
+  if (id==='upsets') renderUpsetWatch();
+}
+
+
+// ─── PREDICTOR ACCURACY ───────────────────────────────────────────
+// Stores actual results entered by user: key = 'r{round}_{idx}', value = actual winner name
+const actualResults = JSON.parse(localStorage.getItem('actualResults') || '{}');
+
+function saveActualResults() {
+  localStorage.setItem('actualResults', JSON.stringify(actualResults));
+}
+
+function setActualResult(key, winnerName) {
+  if (winnerName === '') {
+    delete actualResults[key];
+  } else {
+    actualResults[key] = winnerName;
+  }
+  saveActualResults();
+  renderPredictorTab();
+}
+
+function renderPredictorTab() {
+  const gamesList = document.getElementById('pred-games-list');
+  const emptyMsg  = document.getElementById('pred-empty');
+  if (!gamesList) return;
+
+  // Collect all analyzed matchups across all rounds
+  const allMatchups = [];
+  rounds.forEach((round, r) => {
+    (round || []).forEach((m, idx) => {
+      if (m.result) allMatchups.push({m, r, idx, key: 'r'+r+'_'+idx});
+    });
+  });
+
+  if (!allMatchups.length) {
+    emptyMsg.style.display = 'block';
+    gamesList.innerHTML = '';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+
+  // Group by round
+  const byRound = {};
+  allMatchups.forEach(item => {
+    if (!byRound[item.r]) byRound[item.r] = [];
+    byRound[item.r].push(item);
+  });
+
+  let html = '';
+  for (const [r, items] of Object.entries(byRound)) {
+    html += `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:12px 0 6px">${ROUND_NAMES[r]}</div>`;
+    items.forEach(({m, r, idx, key}) => {
+      const predicted = m.result.winner;
+      const actual    = actualResults[key] || '';
+      const isCorrect = actual !== '' && actual.toLowerCase() === predicted.toLowerCase();
+      const isWrong   = actual !== '' && !isCorrect;
+      const rowClass  = actual !== '' ? (isCorrect ? 'pred-correct' : 'pred-wrong') : 'pred-pending';
+
+      const opts = [m.t1.name, m.t2.name].map(n =>
+        `<option value="${n}" ${actual===n?'selected':''}>${n}</option>`
+      ).join('');
+
+      html += `<div class="pred-game-row ${rowClass}">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);min-width:28px">#${m.t1.seed||'?'}v${m.t2.seed||'?'}</div>
+        <div>
+          <div style="font-size:12px;font-weight:500">${m.t1.name} <span style="color:var(--muted);font-weight:400">vs</span> ${m.t2.name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:1px">Model: <span style="color:${m.result.prob1>=50?'var(--accent)':'var(--muted)'}">${predicted}</span> (${m.result.prob1}%)</div>
+        </div>
+        <div class="result-input-wrap">
+          <select class="result-select" onchange="setActualResult('${key}', this.value)">
+            <option value="">— result —</option>
+            ${opts}
+          </select>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px">
+          ${isCorrect ? '<span style="color:var(--green)">✓ Correct</span>' : isWrong ? '<span style="color:var(--red)">✗ Wrong</span>' : '<span style="color:var(--muted)">Pending</span>'}
+        </div>
+      </div>`;
+    });
+  }
+  gamesList.innerHTML = html;
+
+  // ── Compute metric accuracy ────────────────────────────────────
+  const graded = allMatchups.filter(({key}) => actualResults[key]);
+  const totalGames = graded.length;
+  const correct = graded.filter(({m, key}) => actualResults[key].toLowerCase() === m.result.winner.toLowerCase()).length;
+
+  // Overall accuracy
+  const overallPct = totalGames > 0 ? Math.round(correct / totalGames * 100) : null;
+  const overallEl = document.getElementById('pred-overall-pct');
+  const overallLbl = document.getElementById('pred-overall-label');
+  const overallBar = document.getElementById('pred-overall-bar');
+  if (overallEl) {
+    overallEl.textContent = overallPct !== null ? overallPct + '%' : '—';
+    if (overallLbl) overallLbl.textContent = totalGames + ' game' + (totalGames!==1?'s':'') + ' entered';
+    if (overallBar) {
+      overallBar.style.width = (overallPct||0) + '%';
+      overallBar.style.background = overallPct >= 70 ? 'var(--green)' : overallPct >= 55 ? 'var(--accent)' : 'var(--red)';
+    }
+  }
+
+  if (!totalGames) {
+    const tbl = document.getElementById('pred-metric-table');
+    if (tbl) tbl.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:10px 0">Enter results to see metric accuracy.</div>';
+    const applyBtn = document.getElementById('apply-suggested-btn');
+    if (applyBtn) applyBtn.disabled = true;
+    return;
+  }
+
+  // Per-metric accuracy: for each game with a result, check if the team with
+  // the higher score on each metric was the actual winner
+  const metricStats = {};
+  METRICS.forEach(m => { metricStats[m.id] = {correct: 0, total: 0}; });
+
+  graded.forEach(({m: matchup, key}) => {
+    const actual = actualResults[key];
+    const actualIsT1 = actual.toLowerCase() === matchup.t1.name.toLowerCase();
+    const s1 = matchup.result.scores1 || {};
+    const s2 = matchup.result.scores2 || {};
+
+    METRICS.forEach(met => {
+      const score1 = s1[met.id] || 5;
+      const score2 = s2[met.id] || 5;
+      if (Math.abs(score1 - score2) < 0.3) return; // skip near-ties — not predictive
+      metricStats[met.id].total++;
+      const metricFavouredT1 = score1 > score2;
+      if ((metricFavouredT1 && actualIsT1) || (!metricFavouredT1 && !actualIsT1)) {
+        metricStats[met.id].correct++;
+      }
+    });
+  });
+
+  // Compute suggested weights: scale accuracy to 0–15 weight range
+  // Perfect predictor (100%) → weight 15, random (50%) → weight same as current, useless (0%) → weight 0
+  // Formula: suggestedW = currentW * (accuracy - 0.5) / 0.5 * scaling
+  // Simpler: rank metrics by accuracy, redistribute weights proportionally
+  const metricAccuracies = METRICS.map(m => {
+    const stat = metricStats[m.id];
+    const acc = stat.total > 0 ? stat.correct / stat.total : null;
+    return {id: m.id, label: m.label, acc, total: stat.total, currentW: weights[m.id]};
+  });
+
+  // Suggested weight: if accuracy > 50%, scale up; if < 50%, scale down
+  // Anchor: 70% accuracy = keep current weight. 100% = +50% boost. 50% = -50% cut.
+  const suggestedWeights = {};
+  metricAccuracies.forEach(({id, acc, currentW}) => {
+    if (acc === null) {
+      suggestedWeights[id] = currentW; // no data, keep as-is
+    } else {
+      const scaleFactor = 0.5 + acc; // 0%acc→0.5x, 50%acc→1.0x, 100%acc→1.5x
+      const raw = Math.round(currentW * scaleFactor);
+      suggestedWeights[id] = Math.min(15, Math.max(0, raw));
+    }
+  });
+
+  // Render two-column increase/decrease recommendations
+  const MIN_GAMES = 3;
+  const withData = metricAccuracies.filter(m => m.total >= MIN_GAMES);
+  const increase = withData.filter(m => suggestedWeights[m.id] > m.currentW)
+    .sort((a,b) => (suggestedWeights[b.id]-b.currentW) - (suggestedWeights[a.id]-a.currentW));
+  const decrease = withData.filter(m => suggestedWeights[m.id] < m.currentW)
+    .sort((a,b) => (a.currentW-suggestedWeights[a.id]) - (b.currentW-suggestedWeights[b.id]));
+  const unchanged = withData.filter(m => suggestedWeights[m.id] === m.currentW);
+  const noData = metricAccuracies.filter(m => m.total < MIN_GAMES);
+
+  const recItem = ({id, label, acc, total, currentW}) => {
+    const sug = suggestedWeights[id];
+    const delta = sug - currentW;
+    const accPct = acc !== null ? Math.round(acc*100) : null;
+    const deltaStr = delta > 0 ? '+'+delta : ''+delta;
+    const deltaCol = delta > 0 ? 'var(--green)' : 'var(--red)';
+    const barCol = accPct >= 70 ? 'var(--green)' : accPct >= 55 ? 'var(--accent)' : 'var(--red)';
+    return '<div style="padding:7px 0;border-bottom:0.5px solid var(--border)">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">'
+      + '<span style="font-size:12px">'+label+'</span>'
+      + '<span style="font-family:var(--font-mono);font-size:11px;font-weight:500;color:'+deltaCol+'">'+deltaStr+' ('+currentW+'→'+sug+')</span>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+      + '<div style="flex:1;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden">'
+      + '<div style="height:100%;width:'+accPct+'%;background:'+barCol+';border-radius:2px"></div></div>'
+      + '<span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);white-space:nowrap">'+accPct+'% · '+total+'g</span>'
+      + '</div></div>';
+  };
+
+  const recEl = document.getElementById('pred-recommendations');
+  if (recEl) {
+    let html = '';
+    if (!withData.length) {
+      html = '<div style="font-size:12px;color:var(--muted);padding:8px 0">Enter at least '+MIN_GAMES+' results per metric to see recommendations.</div>';
+    } else {
+      if (increase.length) {
+        html += '<div style="font-size:11px;font-weight:500;color:var(--green);margin-bottom:6px;display:flex;align-items:center;gap:5px">'
+          + '<span style="width:7px;height:7px;background:var(--green);border-radius:50%;display:inline-block"></span>'
+          + 'Increase weight ('+increase.length+' metric'+(increase.length>1?'s':'')+')</div>'
+          + increase.map(recItem).join('');
+      }
+      if (decrease.length) {
+        html += '<div style="font-size:11px;font-weight:500;color:var(--red);margin:12px 0 6px;display:flex;align-items:center;gap:5px">'
+          + '<span style="width:7px;height:7px;background:var(--red);border-radius:50%;display:inline-block"></span>'
+          + 'Decrease weight ('+decrease.length+' metric'+(decrease.length>1?'s':'')+')</div>'
+          + decrease.map(recItem).join('');
+      }
+      if (unchanged.length) {
+        html += '<div style="font-size:11px;color:var(--muted);margin-top:10px">'+unchanged.length+' metric'+(unchanged.length>1?'s':'')+' well-calibrated — no change suggested.</div>';
+      }
+      if (noData.length) {
+        html += '<div style="font-size:10px;color:var(--muted);margin-top:8px;font-style:italic">'+noData.length+' metric'+(noData.length>1?'s':'')+' need more data (min '+MIN_GAMES+' games).</div>';
+      }
+    }
+    recEl.innerHTML = html;
+  }
+
+  // Enable apply button if there are suggestions
+  const applyBtn = document.getElementById('apply-suggested-btn');
+  if (applyBtn) applyBtn.disabled = false;
+
+  // Store suggested weights for apply button
+  window._suggestedWeights = suggestedWeights;
+}
+
+function applySuggestedWeights() {
+  if (!window._suggestedWeights) return;
+  Object.entries(window._suggestedWeights).forEach(([id, w]) => {
+    weights[id] = w;
+    const slider = document.getElementById('ws-'+id);
+    const valEl  = document.getElementById('wv-'+id);
+    if (slider) slider.value = w;
+    if (valEl)  valEl.textContent = w;
+  });
+  // Clear metric score cache so next analyses use new weights
+  clearMetricCache();
+  // Show confirmation
+  switchTab('weights');
+  setTimeout(() => {
+    const msg = document.createElement('div');
+    msg.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999';
+    msg.textContent = '✓ Suggested weights applied. Metric cache cleared — next analyses will use updated weights.';
+    document.body.appendChild(msg);
+    setTimeout(() => msg.remove(), 3500);
+  }, 100);
+}
+
+
+// ─── UPSET WATCH ──────────────────────────────────────────────────
+const upsetCache = {}; // key: matchup key, value: {likelihood, summary, conditions}
+
+let upsetActiveRound = 0; // currently visible round in Upset Watch
+
+function getUpsetCandidates(filterRound) {
+  // Show every matchup where the higher-seed team has >=35% win probability
+  // This is seed-based, not simulation-outcome-based
+  const candidates = [];
+  rounds.forEach((round, r) => {
+    if (filterRound !== undefined && r !== filterRound) return;
+    (round || []).forEach((m, idx) => {
+      if (!m.result) return;
+      const seed1 = parseInt(m.t1.seed) || 99;
+      const seed2 = parseInt(m.t2.seed) || 99;
+      // Skip same-seed matchups (later rounds where seeds can match)
+      if (seed1 === seed2) return;
+      // Identify favorite (lower seed number) and underdog (higher seed number)
+      const favIsT1 = seed1 < seed2;
+      const underdogName = favIsT1 ? m.t2.name : m.t1.name;
+      const favoriteName = favIsT1 ? m.t1.name : m.t2.name;
+      const underdogSeed = favIsT1 ? seed2 : seed1;
+      const favoriteSeed = favIsT1 ? seed1 : seed2;
+      // Underdog's win probability
+      const underdogProb = favIsT1 ? m.result.prob2 : m.result.prob1;
+      if (underdogProb < 35) return;
+      candidates.push({
+        r, idx,
+        key: 'r' + r + '_' + idx,
+        round: ROUND_NAMES[r],
+        winner: m.result.winner,
+        loser: underdogName,   // 'loser' = underdog (regardless of sim outcome)
+        loserName: underdogName,
+        favoriteName,
+        winnerSeed: favoriteSeed,
+        loserSeed: underdogSeed,
+        loserProb: underdogProb,
+        scores1: m.result.scores1,
+        scores2: m.result.scores2,
+        t1name: m.result.t1name,
+        t2name: m.result.t2name,
+        region: m.region,
+      });
+    });
+  });
+  return candidates.sort((a,b) => b.loserProb - a.loserProb);
+}
+
+function upsetLikelihood(prob) {
+  if (prob >= 50) return 'high';
+  if (prob >= 35) return 'medium';
+  return 'low';
+}
+
+function renderUpsetWatch() {
+  const content = document.getElementById('upset-content');
+
+  // Build round dropdown — only include rounds that have analyzed matchups
+  const analyzedRounds = [];
+  rounds.forEach((round, r) => {
+    if ((round || []).some(m => m.result)) analyzedRounds.push(r);
+  });
+
+  if (!analyzedRounds.length) {
+    content.innerHTML = '<p style="font-size:13px;color:var(--muted)">Analyze matchups first — upset candidates will appear here automatically.</p>';
+    return;
+  }
+
+  // Clamp active round to valid analyzed rounds
+  if (!analyzedRounds.includes(upsetActiveRound)) upsetActiveRound = analyzedRounds[0];
+
+  // Round selector tabs
+  const tabsHtml = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">' +
+    analyzedRounds.map(r => {
+      const allInRound = getUpsetCandidates(r);
+      const count = allInRound.length;
+      const isActive = r === upsetActiveRound;
+      return `<button onclick="upsetActiveRound=${r};renderUpsetWatch()"
+        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;
+          border:1px solid ${isActive?'var(--accent)':'var(--border2)'};
+          background:${isActive?'var(--accent)':'transparent'};
+          color:${isActive?'#000':'var(--muted)'};font-family:var(--font-sans)">
+        ${ROUND_NAMES[r]}${count > 0 ? ' <span style="opacity:.7">('+count+')</span>' : ''}
+      </button>`;
+    }).join('') + '</div>';
+
+  const candidates = getUpsetCandidates(upsetActiveRound);
+
+  let cardsHtml = '';
+  if (!candidates.length) {
+    cardsHtml = `<p style="font-size:13px;color:var(--muted);padding:12px 0">
+      No upset candidates in ${ROUND_NAMES[upsetActiveRound]} — all matchups have a &gt;65% favorite or are same-seed matchups.
+    </p>`;
+  } else {
+    candidates.forEach(c => {
+      const cached = upsetCache[c.key];
+      const likelihood = upsetLikelihood(c.loserProb);
+      const badgeClass = 'lb-' + likelihood;
+      const cardClass  = 'likelihood-' + likelihood;
+      cardsHtml += `
+        <div class="upset-card ${cardClass}" id="uc-${c.key}">
+          <div class="upset-header">
+            <div class="upset-teams">
+              #${c.loserSeed} ${c.loser}
+              <span class="upset-loser">over #${c.winnerSeed} ${c.favoriteName}</span>
+            </div>
+            <span class="likelihood-badge ${badgeClass}">${likelihood.toUpperCase()} — ${c.loserProb}%</span>
+            <span class="upset-prob">${c.region}</span>
+          </div>
+          ${cached ? `
+            <div class="upset-summary">${cached.summary}</div>
+            <div class="upset-conditions">
+              <div class="upset-cond-label">What needs to be true</div>
+              <div class="upset-cond-text">${cached.conditions}</div>
+            </div>` : `
+            <button class="upset-analyze-btn" id="ubtn-${c.key}"
+              onclick="analyzeUpset('${c.key}',${c.r},${c.idx})">
+              Analyze upset scenario ↗
+            </button>`}
+        </div>`;
+    });
+  }
+
+  content.innerHTML = tabsHtml + cardsHtml;
+}
+
+async function analyzeUpset(key, r, idx) {
+  const m = rounds[r][idx];
+  if (!m || !m.result) return;
+
+  const btn = document.getElementById('ubtn-' + key);
+  if (btn) { btn.textContent = 'Analyzing…'; btn.disabled = true; }
+
+  // Use seed-based identification — underdog = higher seed number
+  const seed1 = parseInt(m.t1.seed) || 99;
+  const seed2 = parseInt(m.t2.seed) || 99;
+  const favIsT1   = seed1 < seed2;
+  const loserName  = favIsT1 ? m.t2.name : m.t1.name;   // underdog
+  const winnerName = favIsT1 ? m.t1.name : m.t2.name;   // favorite
+  const loserSeed  = favIsT1 ? seed2 : seed1;
+  const winnerSeed = favIsT1 ? seed1 : seed2;
+  const loserProb  = favIsT1 ? m.result.prob2 : m.result.prob1;
+  const likelihood = upsetLikelihood(loserProb);
+
+  // Build metric context — where does the underdog have edges?
+  const loserScores  = favIsT1 ? m.result.scores2 : m.result.scores1;
+  const winnerScores = favIsT1 ? m.result.scores1 : m.result.scores2;
+
+  const underdogEdges = METRICS
+    .filter(m2 => (weights[m2.id]||0) > 0)
+    .map(m2 => ({
+      label: m2.label,
+      loserS: (loserScores[m2.id]||5).toFixed(1),
+      winnerS: (winnerScores[m2.id]||5).toFixed(1),
+      diff: (loserScores[m2.id]||5) - (winnerScores[m2.id]||5),
+    }))
+    .filter(m2 => m2.diff > 0.2)
+    .sort((a,b) => b.diff - a.diff)
+    .map(m2 => `${m2.label}: ${loserName} ${m2.loserS} vs ${winnerName} ${m2.winnerS}`)
+    .join(', ');
+
+  const prompt = `You are a college basketball analyst assessing a potential March Madness upset scenario.
+
+Matchup: #${winnerSeed} ${winnerName} (FAVORITE) vs #${loserSeed} ${loserName} (UNDERDOG — ${loserProb}% upset probability)
+Round: ${ROUND_NAMES[r]}, ${m.region} region
+
+The underdog is ${loserName} (seed #${loserSeed}). Focus entirely on what THEY need to do to win.
+Metrics where ${loserName} (underdog) has an advantage: ${underdogEdges || 'none — this is a long-shot upset'}
+
+What specific game-flow conditions must occur for #${loserSeed} ${loserName} to pull off the upset?
+Write from the perspective of the underdog. Do NOT write about what the favorite needs to do.
+
+Respond in EXACTLY this format, no preamble:
+SUMMARY: [2 sentences — why ${loserName} can or cannot pull this upset off at ${loserProb}%]
+CONDITIONS: [3–4 specific numbered conditions ${loserName} must meet to win. Be concrete. Example: "1. ${loserName} must force ${winnerName} into 15+ turnovers by pressuring their guards. 2. ${loserName}'s shooters must hit at least X threes..." etc.]`;
+
+  try {
+    const resp = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        temperature: 0,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.map(c => c.text||'').join('').trim() || '';
+
+    const summary    = text.match(/SUMMARY:\s*([\s\S]+?)(?=CONDITIONS:|$)/i)?.[1]?.trim() || text;
+    const conditions = text.match(/CONDITIONS:\s*([\s\S]+)/i)?.[1]?.trim() || '';
+
+    upsetCache[key] = { summary, conditions };
+    renderUpsetWatch();
+  } catch(e) {
+    if (btn) { btn.textContent = 'Retry ↗'; btn.disabled = false; }
+  }
+}
+
+async function runUpsetAnalysis() {
+  const btn = document.getElementById('upset-run-btn');
+  const prog = document.getElementById('upset-progress');
+  btn.disabled = true;
+  prog.style.display = 'block';
+
+  // Analyze only the currently visible round
+  const candidates = getUpsetCandidates(upsetActiveRound).filter(c => !upsetCache[c.key]);
+  if (!candidates.length) {
+    renderUpsetWatch();
+    btn.disabled = false;
+    prog.style.display = 'none';
+    return;
+  }
+
+  for (let i = 0; i < candidates.length; i++) {
+    const c = candidates[i];
+    document.getElementById('upset-pfill').style.width = (i / candidates.length * 100) + '%';
+    document.getElementById('upset-plabel').textContent = (i + 1) + ' / ' + candidates.length + ' analyzed';
+    await analyzeUpset(c.key, c.r, c.idx);
+    renderUpsetWatch();
+    await new Promise(res => setTimeout(res, 600));
+  }
+
+  document.getElementById('upset-pfill').style.width = '100%';
+  document.getElementById('upset-plabel').textContent = candidates.length + ' / ' + candidates.length + ' complete';
+  btn.disabled = false;
+  renderUpsetWatch();
+}
+
+init();
+</script>
+</body>
+</html>
